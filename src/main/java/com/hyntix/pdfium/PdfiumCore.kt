@@ -146,11 +146,11 @@ class PdfiumCore {
     }
 
     fun getPageWidth(pagePtr: Long): Double {
-        return nativeGetPageWidth(pagePtr).toDouble()
+        return nativeGetPageWidth(pagePtr)
     }
 
     fun getPageHeight(pagePtr: Long): Double {
-        return nativeGetPageHeight(pagePtr).toDouble()
+        return nativeGetPageHeight(pagePtr)
     }
 
     /**
