@@ -128,6 +128,14 @@ class PdfTextPage internal constructor(
     private fun checkNotClosed() {
         check(!isClosed) { "TextPage has been closed" }
     }
+    /**
+     * Scan the page for web links.
+     */
+    fun loadWebLinks(): PdfWebLinks {
+        checkNotClosed()
+        val linksPtr = core.loadWebLinks(textPagePtr)
+        return PdfWebLinks(core, linksPtr)
+    }
 }
 
 /**
