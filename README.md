@@ -1,6 +1,6 @@
 # KotlinPdfium
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 [![Android](https://img.shields.io/badge/Platform-Android-green.svg)](https://developer.android.com)
 [![API](https://img.shields.io/badge/API-26%2B-brightgreen.svg)](https://android-arsenal.com/api?level=26)
 
@@ -41,7 +41,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.HyntixHQ:KotlinPdfium:1.0.2")
+    implementation("com.github.HyntixHQ:KotlinPdfium:1.0.3")
 }
 ```
 
@@ -220,7 +220,7 @@ The library uses a pre-built PDFium binary (v145.0.7616.0) located in `pdfium-an
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU Affero General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 ### Third-Party Licenses
 
