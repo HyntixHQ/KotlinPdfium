@@ -1,0 +1,28 @@
+# Build outputs
+build/
+.cxx/
+
+# IDE files
+.idea/
+*.iml
+.gradle/
+local.properties
+
+# Backup files
+*.orig
+*.bak
+*~
+
+# Internal documentation (not for public repo)
+features.md
+
+# PDFium build artifacts (not needed - we use pre-built binary)
+pdfium-android-arm64/args.gn
+pdfium-android-arm64/PDFiumConfig.cmake
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
