@@ -62,7 +62,7 @@ publishing {
         register<MavenPublication>("release") {
             groupId = "com.github.HyntixHQ"
             artifactId = "KotlinPdfium"
-            version = "1.0.6"
+            version = "1.0.7"
 
             afterEvaluate {
                 from(components["release"])

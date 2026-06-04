@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.7] - 2026-06-04
+
+### Added
+- **Full fpdf_dataavail.h bindings**: `createAvail`, `destroyAvail`, `availGetDocument`, `availGetFirstPageNum`, `availIsDocAvail`, `availIsPageAvail`, `availIsFormAvail` — all with buffer-based `FPDF_FILEAVAIL`/`FPDF_FILEACCESS` callback infrastructure.
+- **fpdf_ext.h**: `setUnSpObjProcessHandler` with `JNI_OnLoad` + `UNSUPPORT_INFO` callback dispatching to Kotlin static method.
+- **Full fpdf_sysfontinfo.h bindings**: `getDefaultTTFMapCount`, `getDefaultTTFMapEntry`, `getDefaultTTFMap`, `addInstalledFont`, `getDefaultSystemFontInfo`, `freeDefaultSystemFontInfo`, `setSystemFontInfo`.
+- **fpdfview.h**: `openDocument64` (`FPDF_LoadMemDocument64`), `loadCustomDocument` (`FPDF_LoadCustomDocument` with `FPDF_FILEACCESS` callback).
+- **fpdf_edit.h**: Upgraded `LoadJpegFile`, `LoadJpegFileInline`, `GetImageMetadata` from stubs to real implementations with `FPDF_FILEACCESS`/`FPDF_IMAGEOBJ_METADATA` struct support.
+
+### Fixed
+- **Duplicate JNI symbol**: Removed dead-code `nativeImageObjSetBitmap(imageObjPtr, bitmap: Any)` overload that caused linker conflicts with the real implementation.
+- **`nativeDestGetView` return type**: JNI return type corrected from `jboolean` to `jlong` to match Kotlin `Long` declaration.
+- **`nativeAnnotGetFocusableSubtypes` buffer bug**: JNI was calling `NewIntArray` instead of writing to the caller's passed-in `subtypes` array.
+- **Missing public wrapper**: Added `annotGetFocusableSubtypes()` returning `IntArray?`.
+
+### Changed
+- **Complete API surface**: All 22 PDFium C API headers are now fully bound — 396 JNI functions, 396 Kotlin external declarations.
+- **Binary size**: `libpdfium.so` stable at 6.1 MB (no new native dependencies).
+
 ## [1.0.6] - 2026-06-04
 
 ### Fixed
