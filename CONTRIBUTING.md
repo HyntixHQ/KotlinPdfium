@@ -40,7 +40,7 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 ### Prerequisites
 
 - Android Studio Ladybug or newer
-- NDK 29.0.14206865
+- NDK 30.0.14904198
 - JDK 21
 
 ### Building

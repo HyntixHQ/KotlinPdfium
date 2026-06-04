@@ -6,7 +6,7 @@ plugins {
 android {
     namespace = "com.hyntix.pdfium"
     compileSdk = 36
-    ndkVersion = "29.0.14206865"
+    ndkVersion = "30.0.14904198"
 
     defaultConfig {
         minSdk = 26
@@ -62,7 +62,7 @@ publishing {
         register<MavenPublication>("release") {
             groupId = "com.github.HyntixHQ"
             artifactId = "KotlinPdfium"
-            version = "1.0.4"
+            version = "1.0.5"
 
             afterEvaluate {
                 from(components["release"])

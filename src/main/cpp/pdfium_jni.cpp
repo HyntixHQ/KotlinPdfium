@@ -18,6 +18,7 @@
 #include <fpdf_save.h>
 #include <fpdf_formfill.h>
 #include <fpdf_attachment.h>
+#include <fpdf_catalog.h>
 #include <fpdf_ppo.h>
 #include <fpdf_progressive.h>
 #include <fpdf_signature.h>
@@ -44,11 +45,8 @@ extern "C" {
 JNIEXPORT void JNICALL
 Java_com_hyntix_pdfium_PdfiumCore_nativeInitLibrary(JNIEnv *env, jobject thiz) {
     if (libraryReferenceCount == 0) {
-        FPDF_LIBRARY_CONFIG config;
+        FPDF_LIBRARY_CONFIG config = {};
         config.version = 2;
-        config.m_pUserFontPaths = nullptr;
-        config.m_pIsolate = nullptr;
-        config.m_v8EmbedderSlot = 0;
         FPDF_InitLibraryWithConfig(&config);
         LOGI("PDFium library initialized");
     }
@@ -1357,14 +1355,15 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeImageObjSetBitmap(JNIEnv *env, jobject t
 /**
  * Object Management
  */
-JNIEXPORT void JNICALL
+JNIEXPORT jboolean JNICALL
 Java_com_hyntix_pdfium_PdfiumCore_nativeInsertObject(JNIEnv *env, jobject thiz,
                                                      jlong pagePtr, jlong pageObjPtr) {
     FPDF_PAGE page = (FPDF_PAGE) pagePtr;
     FPDF_PAGEOBJECT pageObj = (FPDF_PAGEOBJECT) pageObjPtr;
     if (page && pageObj) {
-        FPDFPage_InsertObject(page, pageObj);
+        return FPDFPage_InsertObject(page, pageObj) ? JNI_TRUE : JNI_FALSE;
     }
+    return JNI_FALSE;
 }
 
 JNIEXPORT jboolean JNICALL
@@ -2309,9 +2308,118 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeGetLinkFromAnnot(JNIEnv *env, jobject th
     FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
     if (!annot) return 0;
     
-    // Use proper PDFium API to get link from annotation
     FPDF_LINK link = FPDFAnnot_GetLink(annot);
     return (jlong) link;
+}
+
+/**
+ * Get Catalog Language
+ */
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetCatalogLanguage(JNIEnv *env, jobject thiz,
+                                                           jlong docPtr) {
+    FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
+    if (!doc) return nullptr;
+    
+    unsigned long size = FPDFCatalog_GetLanguage(doc, nullptr, 0);
+    if (size == 0) return env->NewStringUTF("");
+    
+    unsigned short *buffer = new unsigned short[size];
+    FPDFCatalog_GetLanguage(doc, buffer, size);
+    
+    jstring result = env->NewString((jchar *) buffer, size / 2 - 1);
+    delete[] buffer;
+    return result;
+}
+
+/**
+ * Set Catalog Language
+ */
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeSetCatalogLanguage(JNIEnv *env, jobject thiz,
+                                                           jlong docPtr, jstring language) {
+    FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
+    if (!doc || !language) return JNI_FALSE;
+    
+    const jchar *wideChars = env->GetStringChars(language, nullptr);
+    jsize len = env->GetStringLength(language);
+    
+    FPDF_WCHAR *wideStr = new FPDF_WCHAR[len + 1];
+    for (jsize i = 0; i < len; i++) {
+        wideStr[i] = (FPDF_WCHAR) wideChars[i];
+    }
+    wideStr[len] = 0;
+    
+    env->ReleaseStringChars(language, wideChars);
+    
+    FPDF_BOOL result = FPDFCatalog_SetLanguage(doc, wideStr);
+    delete[] wideStr;
+    return result ? JNI_TRUE : JNI_FALSE;
+}
+
+/**
+ * Get Struct Element Expansion
+ */
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetStructElementExpansion(JNIEnv *env, jobject thiz,
+                                                                  jlong structElemPtr) {
+    FPDF_STRUCTELEMENT elem = (FPDF_STRUCTELEMENT) structElemPtr;
+    if (!elem) return nullptr;
+    
+    unsigned long size = FPDF_StructElement_GetExpansion(elem, nullptr, 0);
+    if (size == 0) return env->NewStringUTF("");
+    
+    unsigned short *buffer = new unsigned short[size];
+    FPDF_StructElement_GetExpansion(elem, buffer, size);
+    
+    jstring result = env->NewString((jchar *) buffer, size / 2 - 1);
+    delete[] buffer;
+    return result;
+}
+
+/**
+ * Add Existing Mark to Page Object
+ */
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAddExistingMark(JNIEnv *env, jobject thiz,
+                                                        jlong pageObjPtr, jlong markPtr) {
+    FPDF_PAGEOBJECT pageObj = (FPDF_PAGEOBJECT) pageObjPtr;
+    FPDF_PAGEOBJECTMARK mark = (FPDF_PAGEOBJECTMARK) markPtr;
+    if (!pageObj || !mark) return JNI_FALSE;
+    
+    return FPDFPageObj_AddExistingMark(pageObj, mark) ? JNI_TRUE : JNI_FALSE;
+}
+
+/**
+ * Set Font Size on Text Object
+ */
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeSetTextObjFontSize(JNIEnv *env, jobject thiz,
+                                                           jlong textObjPtr, jfloat size) {
+    FPDF_PAGEOBJECT text = (FPDF_PAGEOBJECT) textObjPtr;
+    if (!text) return JNI_FALSE;
+    
+    return FPDFTextObj_SetFontSize(text, (float) size) ? JNI_TRUE : JNI_FALSE;
+}
+
+/**
+ * Set Positions on Text Object
+ */
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeSetTextPositions(JNIEnv *env, jobject thiz,
+                                                         jlong textObjPtr,
+                                                         jfloatArray positions) {
+    FPDF_PAGEOBJECT text = (FPDF_PAGEOBJECT) textObjPtr;
+    if (!text || !positions) return JNI_FALSE;
+    
+    jsize count = env->GetArrayLength(positions);
+    if (count == 0) return JNI_FALSE;
+    
+    jfloat *pos = env->GetFloatArrayElements(positions, nullptr);
+    FPDF_BOOL result = FPDFText_SetPositions(text, (const float *) pos, (size_t) count);
+    env->ReleaseFloatArrayElements(positions, pos, JNI_ABORT);
+    
+    return result ? JNI_TRUE : JNI_FALSE;
 }
 
 } // extern "C"

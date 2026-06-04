@@ -28,6 +28,13 @@ class PdfiumCore {
         const val RENDER_TOBECONTINUED = 1
         const val RENDER_DONE = 2
         const val RENDER_FAILED = 3
+
+        // Save flags from fpdf_save.h
+        const val FPDF_INCREMENTAL = 1
+        const val FPDF_NO_INCREMENTAL = 2
+        const val FPDF_REMOVE_SECURITY = 4
+        const val FPDF_REMOVE_SECURITY_DEPRECATED = 3
+        const val FPDF_SUBSET_NEW_FONTS = 8
     }
     
     private var isInitialized = false
@@ -134,6 +141,14 @@ class PdfiumCore {
      */
     fun getPageLabel(docPtr: Long, pageIndex: Int): String {
         return nativeGetPageLabel(docPtr, pageIndex) ?: ""
+    }
+
+    fun getCatalogLanguage(docPtr: Long): String {
+        return nativeGetCatalogLanguage(docPtr) ?: ""
+    }
+
+    fun setCatalogLanguage(docPtr: Long, language: String): Boolean {
+        return nativeSetCatalogLanguage(docPtr, language)
     }
 
     // Page operations
@@ -308,6 +323,8 @@ class PdfiumCore {
     private external fun nativeGetPageCount(docPtr: Long): Int
     private external fun nativeGetMetaText(docPtr: Long, tag: String): String?
     private external fun nativeGetPageLabel(docPtr: Long, pageIndex: Int): String?
+    private external fun nativeGetCatalogLanguage(docPtr: Long): String?
+    private external fun nativeSetCatalogLanguage(docPtr: Long, language: String): Boolean
     
     // Creation & Saving Native methods
     private external fun nativeNewDocument(): Long
@@ -534,11 +551,14 @@ class PdfiumCore {
     private external fun nativePathSetDrawMode(pathObjPtr: Long, fillMode: Int, stroke: Boolean): Boolean
     private external fun nativePathSetStrokeWidth(pathObjPtr: Long, width: Float): Boolean
     private external fun nativeNewImageObj(docPtr: Long): Long
-    private external fun nativeInsertObject(pagePtr: Long, pageObjPtr: Long)
+    private external fun nativeInsertObject(pagePtr: Long, pageObjPtr: Long): Boolean
     private external fun nativeRemoveObject(pagePtr: Long, pageObjPtr: Long): Boolean
     private external fun nativeSetObjectFillColor(pageObjPtr: Long, r: Int, g: Int, b: Int, a: Int)
     private external fun nativeSetObjectStrokeColor(pageObjPtr: Long, r: Int, g: Int, b: Int, a: Int)
     private external fun nativeGenerateContent(pagePtr: Long)
+    private external fun nativeAddExistingMark(pageObjPtr: Long, markPtr: Long): Boolean
+    private external fun nativeSetTextObjFontSize(textObjPtr: Long, size: Float): Boolean
+    private external fun nativeSetTextPositions(textObjPtr: Long, positions: FloatArray): Boolean
 
     // Phase 9: Document Utilities
     private external fun nativeImportPages(destDocPtr: Long, srcDocPtr: Long, pageRange: String?, insertIndex: Int): Boolean
@@ -561,7 +581,8 @@ class PdfiumCore {
     private external fun nativeStructTreeGetChildAtIndex(structTreePtr: Long, index: Int): Long
     private external fun nativeStructElementGetType(structElemPtr: Long): String?
     private external fun nativeStructElementGetAltText(structElemPtr: Long): String?
-
+    private external fun nativeGetStructElementExpansion(structElemPtr: Long): String?
+    
     // Phase 11: Signatures, JS
     private external fun nativeGetSignatureCount(docPtr: Long): Int
     private external fun nativeGetSignatureObject(docPtr: Long, index: Int): Long
@@ -591,11 +612,14 @@ class PdfiumCore {
     fun pathLineTo(pathObjPtr: Long, x: Float, y: Float): Boolean = nativePathLineTo(pathObjPtr, x, y)
     fun pathClose(pathObjPtr: Long): Boolean = nativePathClose(pathObjPtr)
     fun newImageObject(docPtr: Long): Long = nativeNewImageObj(docPtr)
-    fun insertObject(pagePtr: Long, pageObjPtr: Long) = nativeInsertObject(pagePtr, pageObjPtr)
+    fun insertObject(pagePtr: Long, pageObjPtr: Long): Boolean = nativeInsertObject(pagePtr, pageObjPtr)
     fun removeObject(pagePtr: Long, pageObjPtr: Long): Boolean = nativeRemoveObject(pagePtr, pageObjPtr)
     fun setObjectFillColor(pageObjPtr: Long, r: Int, g: Int, b: Int, a: Int) = nativeSetObjectFillColor(pageObjPtr, r, g, b, a)
     fun setObjectStrokeColor(pageObjPtr: Long, r: Int, g: Int, b: Int, a: Int) = nativeSetObjectStrokeColor(pageObjPtr, r, g, b, a)
     fun generateContent(pagePtr: Long) = nativeGenerateContent(pagePtr)
+    fun addExistingMark(pageObjPtr: Long, markPtr: Long): Boolean = nativeAddExistingMark(pageObjPtr, markPtr)
+    fun setTextObjectFontSize(textObjPtr: Long, size: Float): Boolean = nativeSetTextObjFontSize(textObjPtr, size)
+    fun setTextPositions(textObjPtr: Long, positions: FloatArray): Boolean = nativeSetTextPositions(textObjPtr, positions)
 
     // Document Utilities
     fun importPages(destDocPtr: Long, srcDocPtr: Long, pageRange: String?, insertIndex: Int): Boolean = nativeImportPages(destDocPtr, srcDocPtr, pageRange, insertIndex)
@@ -616,6 +640,7 @@ class PdfiumCore {
     fun structTreeGetChildAtIndex(structTreePtr: Long, index: Int): Long = nativeStructTreeGetChildAtIndex(structTreePtr, index)
     fun structElementGetType(structElemPtr: Long): String = nativeStructElementGetType(structElemPtr) ?: ""
     fun structElementGetAltText(structElemPtr: Long): String = nativeStructElementGetAltText(structElemPtr) ?: ""
+    fun getStructElementExpansion(structElemPtr: Long): String = nativeGetStructElementExpansion(structElemPtr) ?: ""
 
     // Signatures
     fun getSignatureCount(docPtr: Long): Int = nativeGetSignatureCount(docPtr)
