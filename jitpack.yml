@@ -1,2 +1,3 @@
-jdk:
-  - openjdk21
+before_install:
+  - yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;30.0.14904198" --sdk_root=$ANDROID_HOME
+  - yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses --sdk_root=$ANDROID_HOME
