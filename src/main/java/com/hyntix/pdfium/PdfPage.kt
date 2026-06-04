@@ -200,7 +200,7 @@ class PdfPage internal constructor(
         return core.mapDeviceToPage(pagePtr, startX, startY, sizeX, sizeY, 0, deviceX, deviceY)
     }
 
-    internal fun getPointer(): Long {
+    fun getPointer(): Long {
         checkNotClosed()
         return pagePtr
     }

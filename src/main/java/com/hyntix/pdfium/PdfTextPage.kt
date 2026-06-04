@@ -13,7 +13,7 @@ class PdfTextPage internal constructor(
     private val core: PdfiumCore,
     private val docPtr: Long,
     private val pagePtr: Long,
-    internal val textPagePtr: Long
+    val textPagePtr: Long
 ) : Closeable {
 
     private var isClosed = false

@@ -91,9 +91,8 @@ class PdfDocument internal constructor(
     
     /**
      * Get the native document pointer.
-     * For internal use only.
      */
-    internal fun getPointer(): Long {
+    fun getPointer(): Long {
         checkNotClosed()
         return docPtr
     }

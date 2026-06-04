@@ -65,6 +65,166 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeDestroyLibrary(JNIEnv *env, jobject thiz
     }
 }
 
+// --- fpdfview.h Additional Bindings ---
+
+JNIEXPORT void JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeSetSandBoxPolicy(JNIEnv *env, jobject thiz,
+                                                        jint policy, jboolean enabled) {
+    FPDF_SetSandBoxPolicy((FPDF_DWORD) policy, enabled ? 1 : 0);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeSetPrintMode(JNIEnv *env, jobject thiz, jint mode) {
+    return FPDF_SetPrintMode(mode) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetFileVersion(JNIEnv *env, jobject thiz,
+                                                      jlong docPtr, jintArray version) {
+    FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
+    if (!doc) return JNI_FALSE;
+    int fileVersion = 0;
+    if (!FPDF_GetFileVersion(doc, &fileVersion)) return JNI_FALSE;
+    jint *body = env->GetIntArrayElements(version, nullptr);
+    body[0] = fileVersion;
+    env->ReleaseIntArrayElements(version, body, 0);
+    return JNI_TRUE;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetPageWidthFFloat(JNIEnv *env, jobject thiz,
+                                                          jlong pagePtr) {
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!page) return 0;
+    return (int)(FPDF_GetPageWidthF(page) * 1000000);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetPageHeightFFloat(JNIEnv *env, jobject thiz,
+                                                           jlong pagePtr) {
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!page) return 0;
+    return (int)(FPDF_GetPageHeightF(page) * 1000000);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetPageBoundingBoxFFloat(JNIEnv *env, jobject thiz,
+                                                                jlong pagePtr, jfloatArray rect) {
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!page) return JNI_FALSE;
+    FS_RECTF fRect;
+    if (!FPDF_GetPageBoundingBoxF(page, &fRect)) return JNI_FALSE;
+    jfloat *body = env->GetFloatArrayElements(rect, nullptr);
+    body[0] = fRect.left; body[1] = fRect.top;
+    body[2] = fRect.right; body[3] = fRect.bottom;
+    env->ReleaseFloatArrayElements(rect, body, 0);
+    return JNI_TRUE;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeBitmapGetFormat(JNIEnv *env, jobject thiz,
+                                                       jlong bitmapPtr) {
+    FPDF_BITMAP bitmap = (FPDF_BITMAP) bitmapPtr;
+    if (!bitmap) return -1;
+    return FPDFBitmap_GetFormat(bitmap);
+}
+
+JNIEXPORT void JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeSetDefaultPrinterMode(JNIEnv *env, jobject thiz,
+                                                             jint mode) {
+    FPDF_SetDefaultPrinterMode(mode);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetDefaultPrinterMode(JNIEnv *env, jobject thiz) {
+    return (jint) FPDF_GetDefaultPrinterMode();
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetDuplexOperation(JNIEnv *env, jobject thiz,
+                                                          jlong docPtr) {
+    FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
+    if (!doc) return 0;
+    return (jint) FPDF_GetDuplexOperation(doc);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetRecommendedV8Flags(JNIEnv *env, jobject thiz) {
+    const char* flags = FPDF_GetRecommendedV8Flags();
+    if (!flags) return nullptr;
+    return env->NewStringUTF(flags);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetArrayBufferAllocatorSharedInstance(JNIEnv *env,
+                                                                             jobject thiz) {
+    return (jlong) FPDF_GetArrayBufferAllocatorSharedInstance();
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetXFAPacketCount(JNIEnv *env, jobject thiz,
+                                                         jlong docPtr) {
+    FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
+    if (!doc) return 0;
+    return FPDF_GetXFAPacketCount(doc);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetXFAPacketName(JNIEnv *env, jobject thiz,
+                                                        jlong docPtr, jint index) {
+    FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
+    if (!doc) return nullptr;
+    unsigned long size = FPDF_GetXFAPacketName(doc, index, nullptr, 0);
+    if (size == 0) return env->NewStringUTF("");
+    char *buffer = new char[size];
+    FPDF_GetXFAPacketName(doc, index, buffer, size);
+    jstring result = env->NewStringUTF(buffer);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetXFAPacketContent(JNIEnv *env, jobject thiz,
+                                                           jlong docPtr, jint index) {
+    FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
+    if (!doc) return nullptr;
+    unsigned long size = FPDF_GetXFAPacketContent(doc, index, nullptr, 0);
+    if (size == 0) return nullptr;
+    unsigned char *buffer = new unsigned char[size];
+    if (!FPDF_GetXFAPacketContent(doc, index, buffer, size)) {
+        delete[] buffer;
+        return nullptr;
+    }
+    jbyteArray result = env->NewByteArray(size);
+    env->SetByteArrayRegion(result, 0, size, (jbyte*) buffer);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeBStrInit(JNIEnv *env, jobject thiz, jlong bstrPtr) {
+    FPDF_BSTR* bstr = (FPDF_BSTR*) bstrPtr;
+    if (!bstr) return JNI_FALSE;
+    return FPDF_BStr_Init(bstr) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeBStrSet(JNIEnv *env, jobject thiz,
+                                               jlong bstrPtr, jstring str) {
+    FPDF_BSTR* bstr = (FPDF_BSTR*) bstrPtr;
+    if (!bstr) return JNI_FALSE;
+    const char* cStr = env->GetStringUTFChars(str, nullptr);
+    FPDF_RESULT result = FPDF_BStr_Set(bstr, cStr, (unsigned long) strlen(cStr));
+    env->ReleaseStringUTFChars(str, cStr);
+    return result ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeBStrClear(JNIEnv *env, jobject thiz, jlong bstrPtr) {
+    FPDF_BSTR* bstr = (FPDF_BSTR*) bstrPtr;
+    if (bstr) FPDF_BStr_Clear(bstr);
+}
+
 /**
  * Get last error code
  */
@@ -583,6 +743,30 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeGetCharIndexAtPos(JNIEnv *env, jobject t
 }
 
 /**
+ * Get Character Index from Text Index
+ */
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetCharIndexFromTextIndex(JNIEnv *env, jobject thiz,
+                                                                  jlong textPagePtr,
+                                                                  jint nTextIndex) {
+    FPDF_TEXTPAGE textPage = (FPDF_TEXTPAGE) textPagePtr;
+    if (!textPage) return -1;
+    return FPDFText_GetCharIndexFromTextIndex(textPage, nTextIndex);
+}
+
+/**
+ * Get Text Index from Character Index
+ */
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetTextIndexFromCharIndex(JNIEnv *env, jobject thiz,
+                                                                  jlong textPagePtr,
+                                                                  jint nCharIndex) {
+    FPDF_TEXTPAGE textPage = (FPDF_TEXTPAGE) textPagePtr;
+    if (!textPage) return -1;
+    return FPDFText_GetTextIndexFromCharIndex(textPage, nCharIndex);
+}
+
+/**
  * Start Text Search
  */
 JNIEXPORT jlong JNICALL
@@ -1025,6 +1209,35 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeSaveDocument(JNIEnv *env, jobject thiz,
     return success ? JNI_TRUE : JNI_FALSE;
 }
 
+/**
+ * Save Document With Version
+ */
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeSaveDocumentWithVersion(JNIEnv *env, jobject thiz,
+                                                                jlong docPtr, jstring path,
+                                                                jint fileVersion) {
+    FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
+    if (!doc) return JNI_FALSE;
+
+    const char *cPath = env->GetStringUTFChars(path, nullptr);
+    FILE *file = fopen(cPath, "wb");
+    if (!file) {
+        env->ReleaseStringUTFChars(path, cPath);
+        return JNI_FALSE;
+    }
+
+    FPDF_FILEWRITE_IMPL writer;
+    writer.version = 1;
+    writer.WriteBlock = FPDF_FILEWRITE_IMPL::WriteBlockImpl;
+    writer.file = file;
+
+    bool success = FPDF_SaveWithVersion(doc, &writer, 0, fileVersion);
+
+    fclose(file);
+    env->ReleaseStringUTFChars(path, cPath);
+    return success ? JNI_TRUE : JNI_FALSE;
+}
+
 // ----------------------------------------------------------------------------
 // Form Filling Support
 // ----------------------------------------------------------------------------
@@ -1438,6 +1651,74 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeCopyViewerPreferences(JNIEnv *env, jobje
 }
 
 /**
+ * Import Pages By Index
+ */
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeImportPagesByIndex(JNIEnv *env, jobject thiz,
+                                                           jlong destDocPtr, jlong srcDocPtr,
+                                                           jintArray pageIndices, jint insertIndex) {
+    FPDF_DOCUMENT destDoc = (FPDF_DOCUMENT) destDocPtr;
+    FPDF_DOCUMENT srcDoc = (FPDF_DOCUMENT) srcDocPtr;
+    if (!destDoc || !srcDoc || !pageIndices) return JNI_FALSE;
+
+    jsize len = env->GetArrayLength(pageIndices);
+    jint *indices = env->GetIntArrayElements(pageIndices, nullptr);
+
+    jboolean result = FPDF_ImportPagesByIndex(destDoc, srcDoc, indices, len, insertIndex) ? JNI_TRUE : JNI_FALSE;
+
+    env->ReleaseIntArrayElements(pageIndices, indices, JNI_ABORT);
+    return result;
+}
+
+/**
+ * Import N Pages To One
+ */
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeImportNPagesToOne(JNIEnv *env, jobject thiz,
+                                                          jlong srcDocPtr,
+                                                          jfloat outputWidth, jfloat outputHeight,
+                                                          jint numPagesX, jint numPagesY) {
+    FPDF_DOCUMENT srcDoc = (FPDF_DOCUMENT) srcDocPtr;
+    if (!srcDoc) return 0;
+    return (jlong) FPDF_ImportNPagesToOne(srcDoc, outputWidth, outputHeight, numPagesX, numPagesY);
+}
+
+/**
+ * New XObject From Page
+ */
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeNewXObjectFromPage(JNIEnv *env, jobject thiz,
+                                                           jlong destDocPtr, jlong srcDocPtr,
+                                                           jint srcPageIndex) {
+    FPDF_DOCUMENT destDoc = (FPDF_DOCUMENT) destDocPtr;
+    FPDF_DOCUMENT srcDoc = (FPDF_DOCUMENT) srcDocPtr;
+    if (!destDoc || !srcDoc) return 0;
+    return (jlong) FPDF_NewXObjectFromPage(destDoc, srcDoc, srcPageIndex);
+}
+
+/**
+ * Close XObject
+ */
+JNIEXPORT void JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeCloseXObject(JNIEnv *env, jobject thiz,
+                                                     jlong xobjectPtr) {
+    FPDF_XOBJECT xobj = (FPDF_XOBJECT) xobjectPtr;
+    if (!xobj) return;
+    FPDF_CloseXObject(xobj);
+}
+
+/**
+ * New Form Object From XObject
+ */
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeNewFormObjectFromXObject(JNIEnv *env, jobject thiz,
+                                                                 jlong xobjectPtr) {
+    FPDF_XOBJECT xobj = (FPDF_XOBJECT) xobjectPtr;
+    if (!xobj) return 0;
+    return (jlong) FPDF_NewFormObjectFromXObject(xobj);
+}
+
+/**
  * Page Flatten
  */
 JNIEXPORT jint JNICALL
@@ -1560,6 +1841,17 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeGetRawThumbnailData(JNIEnv *env, jobject
     FPDFPage_GetRawThumbnailData(page, buffer, size);
     env->ReleaseByteArrayElements(result, buffer, 0);
     return result;
+}
+
+/**
+ * Get Thumbnail As Bitmap
+ */
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetThumbnailAsBitmap(JNIEnv *env, jobject thiz,
+                                                             jlong pagePtr) {
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!page) return 0;
+    return (jlong) FPDFPage_GetThumbnailAsBitmap(page);
 }
 
 /**
@@ -1700,6 +1992,57 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeGetSignatureTime(JNIEnv *env, jobject th
 }
 
 /**
+ * Get Signature Byte Range
+ */
+JNIEXPORT jintArray JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetSignatureByteRange(JNIEnv *env, jobject thiz,
+                                                              jlong sigObjPtr) {
+    FPDF_SIGNATURE sig = (FPDF_SIGNATURE) sigObjPtr;
+    if (!sig) return nullptr;
+
+    unsigned long size = FPDFSignatureObj_GetByteRange(sig, nullptr, 0);
+    if (size == 0) return nullptr;
+
+    int *buffer = new int[size];
+    FPDFSignatureObj_GetByteRange(sig, buffer, size);
+
+    jintArray result = env->NewIntArray(size);
+    env->SetIntArrayRegion(result, 0, size, buffer);
+    delete[] buffer;
+    return result;
+}
+
+/**
+ * Get Signature Sub Filter
+ */
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetSignatureSubFilter(JNIEnv *env, jobject thiz,
+                                                              jlong sigObjPtr) {
+    FPDF_SIGNATURE sig = (FPDF_SIGNATURE) sigObjPtr;
+    if (!sig) return nullptr;
+
+    unsigned long size = FPDFSignatureObj_GetSubFilter(sig, nullptr, 0);
+    if (size == 0) return env->NewStringUTF("");
+
+    char *buffer = new char[size];
+    FPDFSignatureObj_GetSubFilter(sig, buffer, size);
+    jstring result = env->NewStringUTF(buffer);
+    delete[] buffer;
+    return result;
+}
+
+/**
+ * Get Signature DocMDP Permission
+ */
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetSignatureDocMDPPermission(JNIEnv *env, jobject thiz,
+                                                                     jlong sigObjPtr) {
+    FPDF_SIGNATURE sig = (FPDF_SIGNATURE) sigObjPtr;
+    if (!sig) return 0;
+    return (jint) FPDFSignatureObj_GetDocMDPPermission(sig);
+}
+
+/**
  * JavaScript
  */
 JNIEXPORT jint JNICALL
@@ -1708,6 +2051,61 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeGetJavaScriptActionCount(JNIEnv *env, jo
     FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
     if (!doc) return 0;
     return FPDFDoc_GetJavaScriptActionCount(doc);
+}
+
+/**
+ * Get JavaScript Action
+ */
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetJavaScriptAction(JNIEnv *env, jobject thiz,
+                                                            jlong docPtr, jint index) {
+    FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
+    if (!doc) return 0;
+    return (jlong) FPDFDoc_GetJavaScriptAction(doc, index);
+}
+
+/**
+ * Close JavaScript Action
+ */
+JNIEXPORT void JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeCloseJavaScriptAction(JNIEnv *env, jobject thiz,
+                                                              jlong jsActionPtr) {
+    FPDF_JAVASCRIPT_ACTION jsAction = (FPDF_JAVASCRIPT_ACTION) jsActionPtr;
+    if (jsAction) FPDFDoc_CloseJavaScriptAction(jsAction);
+}
+
+/**
+ * Get JavaScript Action Name
+ */
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetJavaScriptActionName(JNIEnv *env, jobject thiz,
+                                                                jlong jsActionPtr) {
+    FPDF_JAVASCRIPT_ACTION jsAction = (FPDF_JAVASCRIPT_ACTION) jsActionPtr;
+    if (!jsAction) return nullptr;
+    unsigned long size = FPDFJavaScriptAction_GetName(jsAction, nullptr, 0);
+    if (size == 0) return env->NewStringUTF("");
+    unsigned short *buffer = new unsigned short[size];
+    FPDFJavaScriptAction_GetName(jsAction, buffer, size);
+    jstring result = env->NewString((jchar *) buffer, size / 2 - 1);
+    delete[] buffer;
+    return result;
+}
+
+/**
+ * Get JavaScript Action Script
+ */
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetJavaScriptActionScript(JNIEnv *env, jobject thiz,
+                                                                  jlong jsActionPtr) {
+    FPDF_JAVASCRIPT_ACTION jsAction = (FPDF_JAVASCRIPT_ACTION) jsActionPtr;
+    if (!jsAction) return nullptr;
+    unsigned long size = FPDFJavaScriptAction_GetScript(jsAction, nullptr, 0);
+    if (size == 0) return env->NewStringUTF("");
+    unsigned short *buffer = new unsigned short[size];
+    FPDFJavaScriptAction_GetScript(jsAction, buffer, size);
+    jstring result = env->NewString((jchar *) buffer, size / 2 - 1);
+    delete[] buffer;
+    return result;
 }
 
 // ----------------------------------------------------------------------------
@@ -1896,6 +2294,31 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeRenderPageClose(JNIEnv *env, jobject thi
     if (page) FPDF_RenderPage_Close(page);
 }
 
+/**
+ * Render Page Bitmap With Color Scheme Start
+ */
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeRenderPageBitmapWithColorSchemeStart(
+    JNIEnv *env, jobject thiz,
+    jlong bitmapPtr, jlong pagePtr,
+    jint startX, jint startY, jint sizeX, jint sizeY,
+    jint rotate, jint flags, jintArray colorScheme) {
+    FPDF_BITMAP bitmap = (FPDF_BITMAP) bitmapPtr;
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!bitmap || !page || !colorScheme) return FPDF_RENDER_FAILED;
+
+    jint *colors = env->GetIntArrayElements(colorScheme, nullptr);
+    FPDF_COLORSCHEME scheme;
+    scheme.path_fill_color = (FPDF_DWORD) colors[0];
+    scheme.path_stroke_color = (FPDF_DWORD) colors[1];
+    scheme.text_fill_color = (FPDF_DWORD) colors[2];
+    scheme.text_stroke_color = (FPDF_DWORD) colors[3];
+    env->ReleaseIntArrayElements(colorScheme, colors, JNI_ABORT);
+
+    return FPDF_RenderPageBitmapWithColorScheme_Start(
+        bitmap, page, startX, startY, sizeX, sizeY, rotate, flags, &scheme, nullptr);
+}
+
 // ============================================================================
 // COMPLETE IMPLEMENTATION - ALL REMAINING FEATURES
 // ============================================================================
@@ -2016,6 +2439,233 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeFormSelectAllText(JNIEnv *env, jobject t
     if (form && page) FORM_SelectAllText(form, page);
 }
 
+// --- Additional Form Fill Functions ---
+
+JNIEXPORT void JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeFormDoDocumentJSAction(JNIEnv *env, jobject thiz,
+                                                               jlong formPtr) {
+    FPDF_FORMHANDLE form = (FPDF_FORMHANDLE) formPtr;
+    if (form) FORM_DoDocumentJSAction(form);
+}
+
+JNIEXPORT void JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeFormDoDocumentOpenAction(JNIEnv *env, jobject thiz,
+                                                                  jlong formPtr) {
+    FPDF_FORMHANDLE form = (FPDF_FORMHANDLE) formPtr;
+    if (form) FORM_DoDocumentOpenAction(form);
+}
+
+JNIEXPORT void JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeFormDoDocumentAAction(JNIEnv *env, jobject thiz,
+                                                              jlong formPtr, jint aaType) {
+    FPDF_FORMHANDLE form = (FPDF_FORMHANDLE) formPtr;
+    if (form) FORM_DoDocumentAAction(form, aaType);
+}
+
+JNIEXPORT void JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeFormDoPageAAction(JNIEnv *env, jobject thiz,
+                                                          jlong formPtr, jlong pagePtr, jint aaType) {
+    FPDF_FORMHANDLE form = (FPDF_FORMHANDLE) formPtr;
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (form && page) FORM_DoPageAAction(page, form, aaType);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeFormOnMouseWheel(JNIEnv *env, jobject thiz,
+                                                         jlong formPtr, jlong pagePtr,
+                                                         jint modifier, jdouble x, jdouble y,
+                                                         jint deltaX, jint deltaY) {
+    FPDF_FORMHANDLE form = (FPDF_FORMHANDLE) formPtr;
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!form || !page) return JNI_FALSE;
+    FS_POINTF pt = {(float)x, (float)y};
+    return FORM_OnMouseWheel(form, page, modifier, &pt, deltaX, deltaY) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeFormOnRButtonDown(JNIEnv *env, jobject thiz,
+                                                          jlong formPtr, jlong pagePtr,
+                                                          jint modifier, jdouble x, jdouble y) {
+    FPDF_FORMHANDLE form = (FPDF_FORMHANDLE) formPtr;
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!form || !page) return JNI_FALSE;
+    return FORM_OnRButtonDown(form, page, modifier, x, y) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeFormOnRButtonUp(JNIEnv *env, jobject thiz,
+                                                        jlong formPtr, jlong pagePtr,
+                                                        jint modifier, jdouble x, jdouble y) {
+    FPDF_FORMHANDLE form = (FPDF_FORMHANDLE) formPtr;
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!form || !page) return JNI_FALSE;
+    return FORM_OnRButtonUp(form, page, modifier, x, y) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeFormOnLButtonDoubleClick(JNIEnv *env, jobject thiz,
+                                                                 jlong formPtr, jlong pagePtr,
+                                                                 jint modifier, jdouble x, jdouble y) {
+    FPDF_FORMHANDLE form = (FPDF_FORMHANDLE) formPtr;
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!form || !page) return JNI_FALSE;
+    return FORM_OnLButtonDoubleClick(form, page, modifier, x, y) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeFormGetFocusedText(JNIEnv *env, jobject thiz,
+                                                           jlong formPtr, jlong pagePtr) {
+    FPDF_FORMHANDLE form = (FPDF_FORMHANDLE) formPtr;
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!form || !page) return nullptr;
+    unsigned long size = FORM_GetFocusedText(form, page, nullptr, 0);
+    if (size == 0) return env->NewStringUTF("");
+    unsigned short *buffer = new unsigned short[size];
+    FORM_GetFocusedText(form, page, buffer, size);
+    jstring result = env->NewString((jchar *) buffer, size / 2 - 1);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeFormGetSelectedText(JNIEnv *env, jobject thiz,
+                                                            jlong formPtr, jlong pagePtr) {
+    FPDF_FORMHANDLE form = (FPDF_FORMHANDLE) formPtr;
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!form || !page) return nullptr;
+    unsigned long size = FORM_GetSelectedText(form, page, nullptr, 0);
+    if (size == 0) return env->NewStringUTF("");
+    unsigned short *buffer = new unsigned short[size];
+    FORM_GetSelectedText(form, page, buffer, size);
+    jstring result = env->NewString((jchar *) buffer, size / 2 - 1);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT void JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeFormReplaceAndKeepSelection(JNIEnv *env, jobject thiz,
+                                                                    jlong formPtr, jlong pagePtr,
+                                                                    jstring text) {
+    FPDF_FORMHANDLE form = (FPDF_FORMHANDLE) formPtr;
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!form || !page) return;
+    jsize len = env->GetStringLength(text);
+    const jchar *chars = env->GetStringChars(text, nullptr);
+    FORM_ReplaceAndKeepSelection(form, page, (FPDF_WIDESTRING) chars);
+    env->ReleaseStringChars(text, chars);
+}
+
+JNIEXPORT void JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeFormReplaceSelection(JNIEnv *env, jobject thiz,
+                                                              jlong formPtr, jlong pagePtr,
+                                                              jstring text) {
+    FPDF_FORMHANDLE form = (FPDF_FORMHANDLE) formPtr;
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!form || !page) return;
+    jsize len = env->GetStringLength(text);
+    const jchar *chars = env->GetStringChars(text, nullptr);
+    FORM_ReplaceSelection(form, page, (FPDF_WIDESTRING) chars);
+    env->ReleaseStringChars(text, chars);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeFormGetFocusedAnnot(JNIEnv *env, jobject thiz,
+                                                            jlong formPtr, jintArray pageIndex, jlongArray annotPtr) {
+    FPDF_FORMHANDLE form = (FPDF_FORMHANDLE) formPtr;
+    if (!form) return JNI_FALSE;
+    int pageIdx = 0;
+    FPDF_ANNOTATION annot = nullptr;
+    FPDF_BOOL result = FORM_GetFocusedAnnot(form, &pageIdx, &annot);
+    if (result) {
+        jint *idxBody = env->GetIntArrayElements(pageIndex, nullptr);
+        idxBody[0] = pageIdx;
+        env->ReleaseIntArrayElements(pageIndex, idxBody, 0);
+        jlong *annBody = env->GetLongArrayElements(annotPtr, nullptr);
+        annBody[0] = (jlong) annot;
+        env->ReleaseLongArrayElements(annotPtr, annBody, 0);
+    }
+    return result ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeFormSetFocusedAnnot(JNIEnv *env, jobject thiz,
+                                                            jlong formPtr, jlong annotPtr) {
+    FPDF_FORMHANDLE form = (FPDF_FORMHANDLE) formPtr;
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!form || !annot) return JNI_FALSE;
+    return FORM_SetFocusedAnnot(form, annot) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageHasFormFieldAtPoint(JNIEnv *env, jobject thiz,
+                                                                jlong formPtr, jlong pagePtr,
+                                                                jdouble x, jdouble y) {
+    FPDF_FORMHANDLE form = (FPDF_FORMHANDLE) formPtr;
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!form || !page) return -1;
+    return FPDFPage_HasFormFieldAtPoint(form, page, x, y);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageFormFieldZOrderAtPoint(JNIEnv *env, jobject thiz,
+                                                                    jlong formPtr, jlong pagePtr,
+                                                                    jdouble x, jdouble y) {
+    FPDF_FORMHANDLE form = (FPDF_FORMHANDLE) formPtr;
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!form || !page) return -1;
+    return FPDFPage_FormFieldZOrderAtPoint(form, page, x, y);
+}
+
+JNIEXPORT void JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeSetFormFieldHighlightColor(JNIEnv *env, jobject thiz,
+                                                                   jlong formPtr, jint fieldType,
+                                                                   jlong color) {
+    FPDF_FORMHANDLE form = (FPDF_FORMHANDLE) formPtr;
+    if (form) FPDF_SetFormFieldHighlightColor(form, fieldType, (unsigned long) color);
+}
+
+JNIEXPORT void JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeSetFormFieldHighlightAlpha(JNIEnv *env, jobject thiz,
+                                                                   jlong formPtr, jint alpha) {
+    FPDF_FORMHANDLE form = (FPDF_FORMHANDLE) formPtr;
+    if (form) FPDF_SetFormFieldHighlightAlpha(form, (unsigned char) alpha);
+}
+
+JNIEXPORT void JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeRemoveFormFieldHighlight(JNIEnv *env, jobject thiz,
+                                                                 jlong formPtr) {
+    FPDF_FORMHANDLE form = (FPDF_FORMHANDLE) formPtr;
+    if (form) FPDF_RemoveFormFieldHighlight(form);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeFormSetIndexSelected(JNIEnv *env, jobject thiz,
+                                                             jlong formPtr, jlong pagePtr,
+                                                             jint index, jboolean selected) {
+    FPDF_FORMHANDLE form = (FPDF_FORMHANDLE) formPtr;
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!form || !page) return JNI_FALSE;
+    return FORM_SetIndexSelected(form, page, index, selected ? 1 : 0) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeFormIsIndexSelected(JNIEnv *env, jobject thiz,
+                                                            jlong formPtr, jlong pagePtr,
+                                                            jint index) {
+    FPDF_FORMHANDLE form = (FPDF_FORMHANDLE) formPtr;
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!form || !page) return JNI_FALSE;
+    return FORM_IsIndexSelected(form, page, index) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeLoadXFA(JNIEnv *env, jobject thiz,
+                                                jlong docPtr) {
+    FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
+    if (!doc) return JNI_FALSE;
+    return FPDF_LoadXFA(doc) ? JNI_TRUE : JNI_FALSE;
+}
+
 // --- Annotation Getters ---
 JNIEXPORT jboolean JNICALL
 Java_com_hyntix_pdfium_PdfiumCore_nativeGetAnnotColor(JNIEnv *env, jobject thiz,
@@ -2108,6 +2758,116 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeGetLinkAction(JNIEnv *env, jobject thiz,
     return (jlong) FPDFLink_GetAction(link);
 }
 
+// --- fpdf_doc.h Additional Bindings ---
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeBookmarkGetCount(JNIEnv *env, jobject thiz,
+                                                        jlong bookmarkPtr) {
+    FPDF_BOOKMARK bookmark = (FPDF_BOOKMARK) bookmarkPtr;
+    if (!bookmark) return 0;
+    return FPDFBookmark_GetCount(bookmark);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeLinkGetLinkZOrderAtPoint(JNIEnv *env, jobject thiz,
+                                                                 jlong pagePtr, jdouble x, jdouble y) {
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!page) return -1;
+    return FPDFLink_GetLinkZOrderAtPoint(page, x, y);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeLinkEnumerate(JNIEnv *env, jobject thiz,
+                                                     jlong pagePtr, jintArray startIndex,
+                                                     jlongArray linkPtr) {
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!page) return JNI_FALSE;
+    jint *body = env->GetIntArrayElements(startIndex, nullptr);
+    int startIdx = body[0];
+    FPDF_LINK link = nullptr;
+    if (!FPDFLink_Enumerate(page, &startIdx, &link)) {
+        env->ReleaseIntArrayElements(startIndex, body, 0);
+        return JNI_FALSE;
+    }
+    body[0] = startIdx;
+    env->ReleaseIntArrayElements(startIndex, body, 0);
+    jlong *linkBody = env->GetLongArrayElements(linkPtr, nullptr);
+    linkBody[0] = (jlong) link;
+    env->ReleaseLongArrayElements(linkPtr, linkBody, 0);
+    return JNI_TRUE;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeLinkGetAnnot(JNIEnv *env, jobject thiz,
+                                                     jlong pagePtr, jlong linkPtr) {
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    FPDF_LINK link = (FPDF_LINK) linkPtr;
+    if (!page || !link) return 0;
+    return (jlong) FPDFLink_GetAnnot(page, link);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeLinkCountQuadPoints(JNIEnv *env, jobject thiz,
+                                                           jlong linkPtr) {
+    FPDF_LINK link = (FPDF_LINK) linkPtr;
+    if (!link) return 0;
+    return FPDFLink_CountQuadPoints(link);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeDestGetView(JNIEnv *env, jobject thiz,
+                                                    jlong destPtr, jlongArray numParams,
+                                                    jfloatArray params) {
+    FPDF_DEST dest = (FPDF_DEST) destPtr;
+    if (!dest) return JNI_FALSE;
+    unsigned long numParamsVal = 0;
+    float paramsBuf[4] = {0};
+    unsigned long result = FPDFDest_GetView(dest, &numParamsVal, paramsBuf);
+    jlong *numBody = env->GetLongArrayElements(numParams, nullptr);
+    numBody[0] = numParamsVal;
+    env->ReleaseLongArrayElements(numParams, numBody, 0);
+    jfloat *paramBody = env->GetFloatArrayElements(params, nullptr);
+    for (int i = 0; i < 4 && i < numParamsVal; i++) paramBody[i] = paramsBuf[i];
+    env->ReleaseFloatArrayElements(params, paramBody, 0);
+    return (jint) result;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeDestGetLocationInPage(JNIEnv *env, jobject thiz,
+                                                             jlong destPtr,
+                                                             jbooleanArray hasXYZ,
+                                                             jfloatArray location) {
+    FPDF_DEST dest = (FPDF_DEST) destPtr;
+    if (!dest) return JNI_FALSE;
+    FPDF_BOOL hasX = 0, hasY = 0, hasZoom = 0;
+    float x = 0, y = 0, zoom = 0;
+    if (!FPDFDest_GetLocationInPage(dest, &hasX, &hasY, &hasZoom, &x, &y, &zoom)) return JNI_FALSE;
+    jboolean *hasBody = env->GetBooleanArrayElements(hasXYZ, nullptr);
+    hasBody[0] = hasX ? JNI_TRUE : JNI_FALSE;
+    hasBody[1] = hasY ? JNI_TRUE : JNI_FALSE;
+    hasBody[2] = hasZoom ? JNI_TRUE : JNI_FALSE;
+    env->ReleaseBooleanArrayElements(hasXYZ, hasBody, 0);
+    jfloat *locBody = env->GetFloatArrayElements(location, nullptr);
+    locBody[0] = x; locBody[1] = y; locBody[2] = zoom;
+    env->ReleaseFloatArrayElements(location, locBody, 0);
+    return JNI_TRUE;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetFileIdentifier(JNIEnv *env, jobject thiz,
+                                                         jlong docPtr, jint idType) {
+    FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
+    if (!doc) return nullptr;
+    unsigned long size = FPDF_GetFileIdentifier(doc, (FPDF_FILEIDTYPE) idType, nullptr, 0);
+    if (size == 0) return nullptr;
+    unsigned char *buffer = new unsigned char[size];
+    FPDF_GetFileIdentifier(doc, (FPDF_FILEIDTYPE) idType, buffer, size);
+    jbyteArray result = env->NewByteArray(size);
+    env->SetByteArrayRegion(result, 0, size, (jbyte*) buffer);
+    delete[] buffer;
+    return result;
+}
+
 // --- Text Rectangles ---
 JNIEXPORT jint JNICALL
 Java_com_hyntix_pdfium_PdfiumCore_nativeTextCountRects(JNIEnv *env, jobject thiz,
@@ -2151,6 +2911,88 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeDeleteAttachment(JNIEnv *env, jobject th
     FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
     if (!doc) return JNI_FALSE;
     return FPDFDoc_DeleteAttachment(doc, index) ? JNI_TRUE : JNI_FALSE;
+}
+
+// --- Attachment Extended Bindings ---
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAttachmentHasKey(JNIEnv *env, jobject thiz,
+                                                         jlong attachmentPtr, jstring key) {
+    FPDF_ATTACHMENT attachment = (FPDF_ATTACHMENT) attachmentPtr;
+    if (!attachment || !key) return JNI_FALSE;
+    const char *cKey = env->GetStringUTFChars(key, nullptr);
+    FPDF_BOOL result = FPDFAttachment_HasKey(attachment, cKey);
+    env->ReleaseStringUTFChars(key, cKey);
+    return result ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAttachmentGetValueType(JNIEnv *env, jobject thiz,
+                                                               jlong attachmentPtr, jstring key) {
+    FPDF_ATTACHMENT attachment = (FPDF_ATTACHMENT) attachmentPtr;
+    if (!attachment || !key) return 0;
+    const char *cKey = env->GetStringUTFChars(key, nullptr);
+    jint result = (jint) FPDFAttachment_GetValueType(attachment, cKey);
+    env->ReleaseStringUTFChars(key, cKey);
+    return result;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAttachmentSetStringValue(JNIEnv *env, jobject thiz,
+                                                                 jlong attachmentPtr, jstring key,
+                                                                 jstring value) {
+    FPDF_ATTACHMENT attachment = (FPDF_ATTACHMENT) attachmentPtr;
+    if (!attachment || !key || !value) return JNI_FALSE;
+    const char *cKey = env->GetStringUTFChars(key, nullptr);
+    const jchar *wValue = env->GetStringChars(value, nullptr);
+    FPDF_BOOL result = FPDFAttachment_SetStringValue(attachment, cKey, (FPDF_WIDESTRING) wValue);
+    env->ReleaseStringChars(value, wValue);
+    env->ReleaseStringUTFChars(key, cKey);
+    return result ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAttachmentGetStringValue(JNIEnv *env, jobject thiz,
+                                                                 jlong attachmentPtr, jstring key) {
+    FPDF_ATTACHMENT attachment = (FPDF_ATTACHMENT) attachmentPtr;
+    if (!attachment || !key) return nullptr;
+    const char *cKey = env->GetStringUTFChars(key, nullptr);
+    unsigned long size = FPDFAttachment_GetStringValue(attachment, cKey, nullptr, 0);
+    if (size == 0) { env->ReleaseStringUTFChars(key, cKey); return env->NewStringUTF(""); }
+    unsigned short *buffer = new unsigned short[size];
+    FPDFAttachment_GetStringValue(attachment, cKey, buffer, size);
+    env->ReleaseStringUTFChars(key, cKey);
+    jstring result = env->NewString((jchar *) buffer, size / 2 - 1);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAttachmentSetFile(JNIEnv *env, jobject thiz,
+                                                          jlong attachmentPtr, jlong docPtr,
+                                                          jbyteArray contents) {
+    FPDF_ATTACHMENT attachment = (FPDF_ATTACHMENT) attachmentPtr;
+    FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
+    if (!attachment || !doc || !contents) return JNI_FALSE;
+    jsize len = env->GetArrayLength(contents);
+    jbyte *data = env->GetByteArrayElements(contents, nullptr);
+    FPDF_BOOL result = FPDFAttachment_SetFile(attachment, doc, data, len);
+    env->ReleaseByteArrayElements(contents, data, JNI_ABORT);
+    return result ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAttachmentGetSubtype(JNIEnv *env, jobject thiz,
+                                                             jlong attachmentPtr) {
+    FPDF_ATTACHMENT attachment = (FPDF_ATTACHMENT) attachmentPtr;
+    if (!attachment) return nullptr;
+    unsigned long size = FPDFAttachment_GetSubtype(attachment, nullptr, 0);
+    if (size == 0) return env->NewStringUTF("");
+    unsigned short *buffer = new unsigned short[size];
+    FPDFAttachment_GetSubtype(attachment, buffer, size);
+    jstring result = env->NewString((jchar *) buffer, size / 2 - 1);
+    delete[] buffer;
+    return result;
 }
 
 // --- Page Object Colors (Get) ---
@@ -2254,6 +3096,86 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeGetPageArtBox(JNIEnv *env, jobject thiz,
     return JNI_TRUE;
 }
 
+// --- Clip Path Operations ---
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeTransformPageWithClip(JNIEnv *env, jobject thiz,
+                                                             jlong pagePtr,
+                                                             jfloat a, jfloat b, jfloat c,
+                                                             jfloat d, jfloat e, jfloat f,
+                                                             jfloat clipLeft, jfloat clipBottom,
+                                                             jfloat clipRight, jfloat clipTop) {
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!page) return JNI_FALSE;
+    FS_MATRIX matrix = {a, b, c, d, e, f};
+    FS_RECTF clipRect = {clipLeft, clipBottom, clipRight, clipTop};
+    return FPDFPage_TransFormWithClip(page, &matrix, &clipRect) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeTransformClipPath(JNIEnv *env, jobject thiz,
+                                                         jlong pageObjPtr,
+                                                         jdouble a, jdouble b, jdouble c,
+                                                         jdouble d, jdouble e, jdouble f) {
+    FPDF_PAGEOBJECT pageObj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (pageObj) FPDFPageObj_TransformClipPath(pageObj, a, b, c, d, e, f);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetPageObjectClipPath(JNIEnv *env, jobject thiz,
+                                                             jlong pageObjPtr) {
+    FPDF_PAGEOBJECT pageObj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (!pageObj) return 0;
+    return (jlong) FPDFPageObj_GetClipPath(pageObj);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeClipPathCountPaths(JNIEnv *env, jobject thiz,
+                                                          jlong clipPathPtr) {
+    FPDF_CLIPPATH clipPath = (FPDF_CLIPPATH) clipPathPtr;
+    if (!clipPath) return -1;
+    return FPDFClipPath_CountPaths(clipPath);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeClipPathCountPathSegments(JNIEnv *env, jobject thiz,
+                                                                 jlong clipPathPtr, jint pathIndex) {
+    FPDF_CLIPPATH clipPath = (FPDF_CLIPPATH) clipPathPtr;
+    if (!clipPath) return -1;
+    return FPDFClipPath_CountPathSegments(clipPath, pathIndex);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeClipPathGetPathSegment(JNIEnv *env, jobject thiz,
+                                                              jlong clipPathPtr, jint pathIndex,
+                                                              jint segmentIndex) {
+    FPDF_CLIPPATH clipPath = (FPDF_CLIPPATH) clipPathPtr;
+    if (!clipPath) return 0;
+    return (jlong) FPDFClipPath_GetPathSegment(clipPath, pathIndex, segmentIndex);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeCreateClipPath(JNIEnv *env, jobject thiz,
+                                                      jfloat left, jfloat bottom,
+                                                      jfloat right, jfloat top) {
+    return (jlong) FPDF_CreateClipPath(left, bottom, right, top);
+}
+
+JNIEXPORT void JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeDestroyClipPath(JNIEnv *env, jobject thiz,
+                                                       jlong clipPathPtr) {
+    FPDF_CLIPPATH clipPath = (FPDF_CLIPPATH) clipPathPtr;
+    if (clipPath) FPDF_DestroyClipPath(clipPath);
+}
+
+JNIEXPORT void JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeInsertClipPath(JNIEnv *env, jobject thiz,
+                                                      jlong pagePtr, jlong clipPathPtr) {
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    FPDF_CLIPPATH clipPath = (FPDF_CLIPPATH) clipPathPtr;
+    if (page && clipPath) FPDFPage_InsertClipPath(page, clipPath);
+}
+
 // --- StructTree Extended ---
 JNIEXPORT jint JNICALL
 Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementCountChildren(JNIEnv *env, jobject thiz,
@@ -2269,6 +3191,268 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementGetChildAtIndex(JNIEnv *env
     FPDF_STRUCTELEMENT elem = (FPDF_STRUCTELEMENT) structElemPtr;
     if (!elem) return 0;
     return (jlong) FPDF_StructElement_GetChildAtIndex(elem, index);
+}
+
+// --- StructElement Additional Bindings ---
+
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementGetActualText(JNIEnv *env, jobject thiz,
+                                                                   jlong structElemPtr) {
+    FPDF_STRUCTELEMENT elem = (FPDF_STRUCTELEMENT) structElemPtr;
+    if (!elem) return nullptr;
+    unsigned long size = FPDF_StructElement_GetActualText(elem, nullptr, 0);
+    if (size == 0) return env->NewStringUTF("");
+    unsigned short *buffer = new unsigned short[size];
+    FPDF_StructElement_GetActualText(elem, buffer, size);
+    jstring result = env->NewString((jchar *) buffer, size / 2 - 1);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementGetID(JNIEnv *env, jobject thiz,
+                                                           jlong structElemPtr) {
+    FPDF_STRUCTELEMENT elem = (FPDF_STRUCTELEMENT) structElemPtr;
+    if (!elem) return nullptr;
+    unsigned long size = FPDF_StructElement_GetID(elem, nullptr, 0);
+    if (size == 0) return env->NewStringUTF("");
+    unsigned short *buffer = new unsigned short[size];
+    FPDF_StructElement_GetID(elem, buffer, size);
+    jstring result = env->NewString((jchar *) buffer, size / 2 - 1);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementGetLang(JNIEnv *env, jobject thiz,
+                                                             jlong structElemPtr) {
+    FPDF_STRUCTELEMENT elem = (FPDF_STRUCTELEMENT) structElemPtr;
+    if (!elem) return nullptr;
+    unsigned long size = FPDF_StructElement_GetLang(elem, nullptr, 0);
+    if (size == 0) return env->NewStringUTF("");
+    unsigned short *buffer = new unsigned short[size];
+    FPDF_StructElement_GetLang(elem, buffer, size);
+    jstring result = env->NewString((jchar *) buffer, size / 2 - 1);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementGetStringAttribute(JNIEnv *env, jobject thiz,
+                                                                       jlong structElemPtr,
+                                                                       jstring attrName) {
+    FPDF_STRUCTELEMENT elem = (FPDF_STRUCTELEMENT) structElemPtr;
+    if (!elem || !attrName) return nullptr;
+    const char *cAttrName = env->GetStringUTFChars(attrName, nullptr);
+    unsigned long size = FPDF_StructElement_GetStringAttribute(elem, cAttrName, nullptr, 0);
+    if (size == 0) { env->ReleaseStringUTFChars(attrName, cAttrName); return env->NewStringUTF(""); }
+    unsigned short *buffer = new unsigned short[size];
+    FPDF_StructElement_GetStringAttribute(elem, cAttrName, buffer, size);
+    env->ReleaseStringUTFChars(attrName, cAttrName);
+    jstring result = env->NewString((jchar *) buffer, size / 2 - 1);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementGetMarkedContentID(JNIEnv *env, jobject thiz,
+                                                                       jlong structElemPtr) {
+    FPDF_STRUCTELEMENT elem = (FPDF_STRUCTELEMENT) structElemPtr;
+    if (!elem) return -1;
+    return FPDF_StructElement_GetMarkedContentID(elem);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementGetObjType(JNIEnv *env, jobject thiz,
+                                                                jlong structElemPtr) {
+    FPDF_STRUCTELEMENT elem = (FPDF_STRUCTELEMENT) structElemPtr;
+    if (!elem) return nullptr;
+    unsigned long size = FPDF_StructElement_GetObjType(elem, nullptr, 0);
+    if (size == 0) return env->NewStringUTF("");
+    unsigned short *buffer = new unsigned short[size];
+    FPDF_StructElement_GetObjType(elem, buffer, size);
+    jstring result = env->NewString((jchar *) buffer, size / 2 - 1);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementGetTitle(JNIEnv *env, jobject thiz,
+                                                              jlong structElemPtr) {
+    FPDF_STRUCTELEMENT elem = (FPDF_STRUCTELEMENT) structElemPtr;
+    if (!elem) return nullptr;
+    unsigned long size = FPDF_StructElement_GetTitle(elem, nullptr, 0);
+    if (size == 0) return env->NewStringUTF("");
+    unsigned short *buffer = new unsigned short[size];
+    FPDF_StructElement_GetTitle(elem, buffer, size);
+    jstring result = env->NewString((jchar *) buffer, size / 2 - 1);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementGetChildMarkedContentID(JNIEnv *env, jobject thiz,
+                                                                            jlong structElemPtr,
+                                                                            jint index) {
+    FPDF_STRUCTELEMENT elem = (FPDF_STRUCTELEMENT) structElemPtr;
+    if (!elem) return -1;
+    return FPDF_StructElement_GetChildMarkedContentID(elem, index);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementGetParent(JNIEnv *env, jobject thiz,
+                                                               jlong structElemPtr) {
+    FPDF_STRUCTELEMENT elem = (FPDF_STRUCTELEMENT) structElemPtr;
+    if (!elem) return 0;
+    return (jlong) FPDF_StructElement_GetParent(elem);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementGetAttributeCount(JNIEnv *env, jobject thiz,
+                                                                      jlong structElemPtr) {
+    FPDF_STRUCTELEMENT elem = (FPDF_STRUCTELEMENT) structElemPtr;
+    if (!elem) return -1;
+    return FPDF_StructElement_GetAttributeCount(elem);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementGetAttributeAtIndex(JNIEnv *env, jobject thiz,
+                                                                        jlong structElemPtr,
+                                                                        jint index) {
+    FPDF_STRUCTELEMENT elem = (FPDF_STRUCTELEMENT) structElemPtr;
+    if (!elem) return 0;
+    return (jlong) FPDF_StructElement_GetAttributeAtIndex(elem, index);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementAttrGetCount(JNIEnv *env, jobject thiz,
+                                                                  jlong attrPtr) {
+    FPDF_STRUCTELEMENT_ATTR attr = (FPDF_STRUCTELEMENT_ATTR) attrPtr;
+    if (!attr) return -1;
+    return FPDF_StructElement_Attr_GetCount(attr);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementAttrGetName(JNIEnv *env, jobject thiz,
+                                                                 jlong attrPtr, jint index) {
+    FPDF_STRUCTELEMENT_ATTR attr = (FPDF_STRUCTELEMENT_ATTR) attrPtr;
+    if (!attr) return nullptr;
+    unsigned long outLen = 0;
+    FPDF_StructElement_Attr_GetName(attr, index, nullptr, 0, &outLen);
+    if (outLen == 0) return env->NewStringUTF("");
+    unsigned short *buffer = new unsigned short[outLen];
+    FPDF_StructElement_Attr_GetName(attr, index, buffer, outLen, &outLen);
+    jstring result = env->NewString((jchar *) buffer, outLen / 2 - 1);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementAttrGetValue(JNIEnv *env, jobject thiz,
+                                                                  jlong attrPtr, jstring name) {
+    FPDF_STRUCTELEMENT_ATTR attr = (FPDF_STRUCTELEMENT_ATTR) attrPtr;
+    if (!attr || !name) return 0;
+    const char *cName = env->GetStringUTFChars(name, nullptr);
+    jlong result = (jlong) FPDF_StructElement_Attr_GetValue(attr, cName);
+    env->ReleaseStringUTFChars(name, cName);
+    return result;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementAttrGetType(JNIEnv *env, jobject thiz,
+                                                                 jlong valuePtr) {
+    FPDF_STRUCTELEMENT_ATTR_VALUE value = (FPDF_STRUCTELEMENT_ATTR_VALUE) valuePtr;
+    if (!value) return 0;
+    return (jint) FPDF_StructElement_Attr_GetType(value);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementAttrGetBooleanValue(JNIEnv *env, jobject thiz,
+                                                                        jlong valuePtr,
+                                                                        jbooleanArray outValue) {
+    FPDF_STRUCTELEMENT_ATTR_VALUE value = (FPDF_STRUCTELEMENT_ATTR_VALUE) valuePtr;
+    if (!value || !outValue) return JNI_FALSE;
+    FPDF_BOOL boolVal = FPDF_FALSE;
+    FPDF_BOOL ok = FPDF_StructElement_Attr_GetBooleanValue(value, &boolVal);
+    if (ok) {
+        jboolean bVal = boolVal ? JNI_TRUE : JNI_FALSE;
+        env->SetBooleanArrayRegion(outValue, 0, 1, &bVal);
+    }
+    return ok ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementAttrGetNumberValue(JNIEnv *env, jobject thiz,
+                                                                       jlong valuePtr,
+                                                                       floatArray outValue) {
+    FPDF_STRUCTELEMENT_ATTR_VALUE value = (FPDF_STRUCTELEMENT_ATTR_VALUE) valuePtr;
+    if (!value || !outValue) return JNI_FALSE;
+    float numVal = 0.0f;
+    FPDF_BOOL ok = FPDF_StructElement_Attr_GetNumberValue(value, &numVal);
+    if (ok) {
+        env->SetFloatArrayRegion(outValue, 0, 1, &numVal);
+    }
+    return ok ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementAttrGetStringValue(JNIEnv *env, jobject thiz,
+                                                                       jlong valuePtr) {
+    FPDF_STRUCTELEMENT_ATTR_VALUE value = (FPDF_STRUCTELEMENT_ATTR_VALUE) valuePtr;
+    if (!value) return JNI_FALSE;
+    unsigned long outLen = 0;
+    FPDF_BOOL ok = FPDF_StructElement_Attr_GetStringValue(value, nullptr, 0, &outLen);
+    return ok ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementAttrGetBlobValue(JNIEnv *env, jobject thiz,
+                                                                      jlong valuePtr) {
+    FPDF_STRUCTELEMENT_ATTR_VALUE value = (FPDF_STRUCTELEMENT_ATTR_VALUE) valuePtr;
+    if (!value) return nullptr;
+    unsigned long outLen = 0;
+    FPDF_StructElement_Attr_GetBlobValue(value, nullptr, 0, &outLen);
+    if (outLen == 0) return nullptr;
+    unsigned char *buffer = new unsigned char[outLen];
+    FPDF_StructElement_Attr_GetBlobValue(value, buffer, outLen, &outLen);
+    jbyteArray result = env->NewByteArray(outLen);
+    env->SetByteArrayRegion(result, 0, outLen, (jbyte *) buffer);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementAttrCountChildren(JNIEnv *env, jobject thiz,
+                                                                      jlong valuePtr) {
+    FPDF_STRUCTELEMENT_ATTR_VALUE value = (FPDF_STRUCTELEMENT_ATTR_VALUE) valuePtr;
+    if (!value) return -1;
+    return FPDF_StructElement_Attr_CountChildren(value);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementAttrGetChildAtIndex(JNIEnv *env, jobject thiz,
+                                                                        jlong valuePtr,
+                                                                        jint index) {
+    FPDF_STRUCTELEMENT_ATTR_VALUE value = (FPDF_STRUCTELEMENT_ATTR_VALUE) valuePtr;
+    if (!value) return 0;
+    return (jlong) FPDF_StructElement_Attr_GetChildAtIndex(value, index);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementGetMarkedContentIdCount(JNIEnv *env, jobject thiz,
+                                                                            jlong structElemPtr) {
+    FPDF_STRUCTELEMENT elem = (FPDF_STRUCTELEMENT) structElemPtr;
+    if (!elem) return -1;
+    return FPDF_StructElement_GetMarkedContentIdCount(elem);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementGetMarkedContentIdAtIndex(JNIEnv *env, jobject thiz,
+                                                                              jlong structElemPtr,
+                                                                              jint index) {
+    FPDF_STRUCTELEMENT elem = (FPDF_STRUCTELEMENT) structElemPtr;
+    if (!elem) return -1;
+    return FPDF_StructElement_GetMarkedContentIdAtIndex(elem, index);
 }
 
 // --- Font Loading ---
@@ -2358,6 +3542,17 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeSetCatalogLanguage(JNIEnv *env, jobject 
 }
 
 /**
+ * Check if document is a tagged PDF
+ */
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeCatalogIsTagged(JNIEnv *env, jobject thiz,
+                                                        jlong docPtr) {
+    FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
+    if (!doc) return JNI_FALSE;
+    return FPDFCatalog_IsTagged(doc) ? JNI_TRUE : JNI_FALSE;
+}
+
+/**
  * Get Struct Element Expansion
  */
 JNIEXPORT jstring JNICALL
@@ -2420,6 +3615,1258 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeSetTextPositions(JNIEnv *env, jobject th
     env->ReleaseFloatArrayElements(positions, pos, JNI_ABORT);
     
     return result ? JNI_TRUE : JNI_FALSE;
+}
+
+// =========================================================================
+// NEW BINDINGS
+// =========================================================================
+
+/**
+ * Get Document Permissions
+ */
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetDocPermissions(JNIEnv *env, jobject thiz,
+                                                          jlong docPtr) {
+    FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
+    if (!doc) return 0;
+    return (jlong) FPDF_GetDocPermissions(doc);
+}
+
+/**
+ * Get Annotation String Value
+ */
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetAnnotStringValue(JNIEnv *env, jobject thiz,
+                                                            jlong annotPtr, jstring key) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot || !key) return nullptr;
+
+    const char *keyChars = env->GetStringUTFChars(key, nullptr);
+    unsigned long size = FPDFAnnot_GetStringValue(annot, keyChars, nullptr, 0);
+    env->ReleaseStringUTFChars(key, keyChars);
+
+    if (size == 0) return env->NewStringUTF("");
+
+    unsigned short *buffer = new unsigned short[size];
+    keyChars = env->GetStringUTFChars(key, nullptr);
+    FPDFAnnot_GetStringValue(annot, keyChars, buffer, size);
+    env->ReleaseStringUTFChars(key, keyChars);
+
+    jstring result = env->NewString((jchar *) buffer, size - 1);
+    delete[] buffer;
+    return result;
+}
+
+/**
+ * Get Bounded Text - extract text from a region
+ */
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetBoundedText(JNIEnv *env, jobject thiz,
+                                                       jlong textPagePtr,
+                                                       jdouble left, jdouble top,
+                                                       jdouble right, jdouble bottom) {
+    FPDF_TEXTPAGE textPage = (FPDF_TEXTPAGE) textPagePtr;
+    if (!textPage) return nullptr;
+
+    int count = FPDFText_GetBoundedText(textPage, left, top, right, bottom, nullptr, 0);
+    if (count == 0) return env->NewStringUTF("");
+
+    unsigned short *buffer = new unsigned short[count];
+    FPDFText_GetBoundedText(textPage, left, top, right, bottom, buffer, count);
+
+    jstring result = env->NewString((jchar *) buffer, count);
+    delete[] buffer;
+    return result;
+}
+
+/**
+ * Form Force to Kill Focus
+ */
+JNIEXPORT void JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeFormForceToKillFocus(JNIEnv *env, jobject thiz,
+                                                             jlong formPtr) {
+    FPDF_FORMHANDLE form = (FPDF_FORMHANDLE) formPtr;
+    if (!form) return;
+    FORM_ForceToKillFocus(form);
+}
+
+/**
+ * Get Page Bounding Box
+ */
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetPageBoundingBox(JNIEnv *env, jobject thiz,
+                                                           jlong pagePtr, jfloatArray result) {
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!page || !result) return JNI_FALSE;
+
+    FS_RECTF rect;
+    FPDF_BOOL success = FPDF_GetPageBoundingBox(page, &rect);
+    if (!success) return JNI_FALSE;
+
+    jfloat *out = env->GetFloatArrayElements(result, nullptr);
+    out[0] = rect.left;
+    out[1] = rect.top;
+    out[2] = rect.right;
+    out[3] = rect.bottom;
+    env->ReleaseFloatArrayElements(result, out, 0);
+
+    return JNI_TRUE;
+}
+
+// --- fpdf_text.h Additional Bindings ---
+
+JNIEXPORT jfloat JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeTextGetCharAngle(JNIEnv *env, jobject thiz,
+                                                        jlong textPagePtr, jint index) {
+    FPDF_TEXTPAGE textPage = (FPDF_TEXTPAGE) textPagePtr;
+    if (!textPage) return 0;
+    return (jfloat) FPDFText_GetCharAngle(textPage, index);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeTextGetCharOrigin(JNIEnv *env, jobject thiz,
+                                                         jlong textPagePtr, jint index,
+                                                         jdoubleArray origin) {
+    FPDF_TEXTPAGE textPage = (FPDF_TEXTPAGE) textPagePtr;
+    if (!textPage) return JNI_FALSE;
+    double x = 0, y = 0;
+    if (!FPDFText_GetCharOrigin(textPage, index, &x, &y)) return JNI_FALSE;
+    jdouble *body = env->GetDoubleArrayElements(origin, nullptr);
+    body[0] = x; body[1] = y;
+    env->ReleaseDoubleArrayElements(origin, body, 0);
+    return JNI_TRUE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeTextGetFillColor(JNIEnv *env, jobject thiz,
+                                                        jlong textPagePtr, jint index,
+                                                        jintArray color) {
+    FPDF_TEXTPAGE textPage = (FPDF_TEXTPAGE) textPagePtr;
+    if (!textPage) return JNI_FALSE;
+    unsigned int r = 0, g = 0, b = 0, a = 0;
+    if (!FPDFText_GetFillColor(textPage, index, &r, &g, &b, &a)) return JNI_FALSE;
+    jint *body = env->GetIntArrayElements(color, nullptr);
+    body[0] = r; body[1] = g; body[2] = b; body[3] = a;
+    env->ReleaseIntArrayElements(color, body, 0);
+    return JNI_TRUE;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeTextGetFontInfo(JNIEnv *env, jobject thiz,
+                                                       jlong textPagePtr, jint index) {
+    FPDF_TEXTPAGE textPage = (FPDF_TEXTPAGE) textPagePtr;
+    if (!textPage) return nullptr;
+    unsigned long flags = 0;
+    unsigned long size = FPDFText_GetFontInfo(textPage, index, nullptr, 0, &flags);
+    if (size == 0) return env->NewStringUTF("");
+    unsigned short *buffer = new unsigned short[size];
+    FPDFText_GetFontInfo(textPage, index, buffer, size, &flags);
+    jstring result = env->NewString((jchar *) buffer, size / 2 - 1);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT jdouble JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeTextGetFontSize(JNIEnv *env, jobject thiz,
+                                                       jlong textPagePtr, jint index) {
+    FPDF_TEXTPAGE textPage = (FPDF_TEXTPAGE) textPagePtr;
+    if (!textPage) return 0;
+    return FPDFText_GetFontSize(textPage, index);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeTextGetFontWeight(JNIEnv *env, jobject thiz,
+                                                         jlong textPagePtr, jint index) {
+    FPDF_TEXTPAGE textPage = (FPDF_TEXTPAGE) textPagePtr;
+    if (!textPage) return 0;
+    return FPDFText_GetFontWeight(textPage, index);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeTextGetLooseCharBox(JNIEnv *env, jobject thiz,
+                                                           jlong textPagePtr, jint index,
+                                                           jdoubleArray rect) {
+    FPDF_TEXTPAGE textPage = (FPDF_TEXTPAGE) textPagePtr;
+    if (!textPage) return JNI_FALSE;
+    FS_RECTF fRect;
+    if (!FPDFText_GetLooseCharBox(textPage, index, &fRect)) return JNI_FALSE;
+    jdouble *body = env->GetDoubleArrayElements(rect, nullptr);
+    body[0] = fRect.left; body[1] = fRect.top;
+    body[2] = fRect.right; body[3] = fRect.bottom;
+    env->ReleaseDoubleArrayElements(rect, body, 0);
+    return JNI_TRUE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeTextGetMatrix(JNIEnv *env, jobject thiz,
+                                                     jlong textPagePtr, jint index,
+                                                     jfloatArray matrix) {
+    FPDF_TEXTPAGE textPage = (FPDF_TEXTPAGE) textPagePtr;
+    if (!textPage) return JNI_FALSE;
+    FS_MATRIX fsMatrix;
+    if (!FPDFText_GetMatrix(textPage, index, &fsMatrix)) return JNI_FALSE;
+    jfloat *body = env->GetFloatArrayElements(matrix, nullptr);
+    body[0] = fsMatrix.a; body[1] = fsMatrix.b;
+    body[2] = fsMatrix.c; body[3] = fsMatrix.d;
+    body[4] = fsMatrix.e; body[5] = fsMatrix.f;
+    env->ReleaseFloatArrayElements(matrix, body, 0);
+    return JNI_TRUE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeTextGetStrokeColor(JNIEnv *env, jobject thiz,
+                                                          jlong textPagePtr, jint index,
+                                                          jintArray color) {
+    FPDF_TEXTPAGE textPage = (FPDF_TEXTPAGE) textPagePtr;
+    if (!textPage) return JNI_FALSE;
+    unsigned int r = 0, g = 0, b = 0, a = 0;
+    if (!FPDFText_GetStrokeColor(textPage, index, &r, &g, &b, &a)) return JNI_FALSE;
+    jint *body = env->GetIntArrayElements(color, nullptr);
+    body[0] = r; body[1] = g; body[2] = b; body[3] = a;
+    env->ReleaseIntArrayElements(color, body, 0);
+    return JNI_TRUE;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeTextGetTextObject(JNIEnv *env, jobject thiz,
+                                                         jlong textPagePtr, jint index) {
+    FPDF_TEXTPAGE textPage = (FPDF_TEXTPAGE) textPagePtr;
+    if (!textPage) return 0;
+    return (jlong) FPDFText_GetTextObject(textPage, index);
+}
+
+JNIEXPORT jshort JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeTextGetUnicode(JNIEnv *env, jobject thiz,
+                                                      jlong textPagePtr, jint index) {
+    FPDF_TEXTPAGE textPage = (FPDF_TEXTPAGE) textPagePtr;
+    if (!textPage) return 0;
+    return (jshort) FPDFText_GetUnicode(textPage, index);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeTextHasUnicodeMapError(JNIEnv *env, jobject thiz,
+                                                              jlong textPagePtr, jint index) {
+    FPDF_TEXTPAGE textPage = (FPDF_TEXTPAGE) textPagePtr;
+    if (!textPage) return JNI_FALSE;
+    return FPDFText_HasUnicodeMapError(textPage, index) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeTextIsGenerated(JNIEnv *env, jobject thiz,
+                                                       jlong textPagePtr, jint index) {
+    FPDF_TEXTPAGE textPage = (FPDF_TEXTPAGE) textPagePtr;
+    if (!textPage) return JNI_FALSE;
+    return FPDFText_IsGenerated(textPage, index) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeTextIsHyphen(JNIEnv *env, jobject thiz,
+                                                    jlong textPagePtr, jint index) {
+    FPDF_TEXTPAGE textPage = (FPDF_TEXTPAGE) textPagePtr;
+    if (!textPage) return JNI_FALSE;
+    return FPDFText_IsHyphen(textPage, index) ? JNI_TRUE : JNI_FALSE;
+}
+
+// --- fpdf_annot.h Additional Bindings ---
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageGetAnnotIndex(JNIEnv *env, jobject thiz,
+                                                         jlong pagePtr, jlong annotPtr) {
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!page || !annot) return -1;
+    return FPDFPage_GetAnnotIndex(page, annot);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotHasKey(JNIEnv *env, jobject thiz,
+                                                   jlong annotPtr, jstring key) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return JNI_FALSE;
+    const char* cKey = env->GetStringUTFChars(key, nullptr);
+    FPDF_BOOL result = FPDFAnnot_HasKey(annot, cKey);
+    env->ReleaseStringUTFChars(key, cKey);
+    return result ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetValueType(JNIEnv *env, jobject thiz,
+                                                         jlong annotPtr, jstring key) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return 0;
+    const char* cKey = env->GetStringUTFChars(key, nullptr);
+    int result = FPDFAnnot_GetValueType(annot, cKey);
+    env->ReleaseStringUTFChars(key, cKey);
+    return result;
+}
+
+JNIEXPORT jdouble JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetNumberValue(JNIEnv *env, jobject thiz,
+                                                           jlong annotPtr, jstring key) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return 0;
+    const char* cKey = env->GetStringUTFChars(key, nullptr);
+    double result = FPDFAnnot_GetNumberValue(annot, cKey);
+    env->ReleaseStringUTFChars(key, cKey);
+    return result;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotSetURI(JNIEnv *env, jobject thiz,
+                                                    jlong annotPtr, jstring uri) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return JNI_FALSE;
+    const char* cUri = env->GetStringUTFChars(uri, nullptr);
+    FPDF_BOOL result = FPDFAnnot_SetURI(annot, cUri);
+    env->ReleaseStringUTFChars(uri, cUri);
+    return result ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetBorder(JNIEnv *env, jobject thiz,
+                                                       jlong annotPtr, jfloatArray border) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return JNI_FALSE;
+    float horizontal = 0, vertical = 0, corner = 0;
+    if (!FPDFAnnot_GetBorder(annot, &horizontal, &vertical, &corner)) return JNI_FALSE;
+    jfloat *body = env->GetFloatArrayElements(border, nullptr);
+    body[0] = horizontal; body[1] = vertical; body[2] = corner;
+    env->ReleaseFloatArrayElements(border, body, 0);
+    return JNI_TRUE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotSetBorder(JNIEnv *env, jobject thiz,
+                                                       jlong annotPtr, jfloat horizontal, jfloat vertical, jfloat corner) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return JNI_FALSE;
+    return FPDFAnnot_SetBorder(annot, horizontal, vertical, corner) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetFontColor(JNIEnv *env, jobject thiz,
+                                                         jlong annotPtr, jintArray color) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return JNI_FALSE;
+    unsigned int r = 0, g = 0, b = 0, a = 0;
+    if (!FPDFAnnot_GetFontColor(annot, &r, &g, &b, &a)) return JNI_FALSE;
+    jint *body = env->GetIntArrayElements(color, nullptr);
+    body[0] = r; body[1] = g; body[2] = b; body[3] = a;
+    env->ReleaseIntArrayElements(color, body, 0);
+    return JNI_TRUE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotSetFontColor(JNIEnv *env, jobject thiz,
+                                                         jlong annotPtr, jint r, jint g, jint b, jint a) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return JNI_FALSE;
+    return FPDFAnnot_SetFontColor(annot, (unsigned int) r, (unsigned int) g, (unsigned int) b, (unsigned int) a) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jdouble JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetFontSize(JNIEnv *env, jobject thiz,
+                                                        jlong annotPtr) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return 0;
+    return FPDFAnnot_GetFontSize(annot);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetFormFieldType(JNIEnv *env, jobject thiz,
+                                                             jlong annotPtr) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return 0;
+    return FPDFAnnot_GetFormFieldType(annot);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetFormFieldName(JNIEnv *env, jobject thiz,
+                                                             jlong annotPtr) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return nullptr;
+    unsigned long size = FPDFAnnot_GetFormFieldName(annot, nullptr, 0);
+    if (size == 0) return env->NewStringUTF("");
+    unsigned short *buffer = new unsigned short[size];
+    FPDFAnnot_GetFormFieldName(annot, buffer, size);
+    jstring result = env->NewString((jchar *) buffer, size / 2 - 1);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetFormFieldValue(JNIEnv *env, jobject thiz,
+                                                              jlong annotPtr) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return nullptr;
+    unsigned long size = FPDFAnnot_GetFormFieldValue(annot, nullptr, 0);
+    if (size == 0) return env->NewStringUTF("");
+    unsigned short *buffer = new unsigned short[size];
+    FPDFAnnot_GetFormFieldValue(annot, buffer, size);
+    jstring result = env->NewString((jchar *) buffer, size / 2 - 1);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetFormControlCount(JNIEnv *env, jobject thiz,
+                                                                jlong annotPtr) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return 0;
+    return FPDFAnnot_GetFormControlCount(annot);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetFormControlIndex(JNIEnv *env, jobject thiz,
+                                                                jlong annotPtr) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return 0;
+    return FPDFAnnot_GetFormControlIndex(annot);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetFormFieldAlternateName(JNIEnv *env, jobject thiz,
+                                                                      jlong annotPtr, jint index) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return nullptr;
+    unsigned long size = FPDFAnnot_GetFormFieldAlternateName(annot, index, nullptr, 0);
+    if (size == 0) return env->NewStringUTF("");
+    unsigned short *buffer = new unsigned short[size];
+    FPDFAnnot_GetFormFieldAlternateName(annot, index, buffer, size);
+    jstring result = env->NewString((jchar *) buffer, size / 2 - 1);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetOptionCount(JNIEnv *env, jobject thiz,
+                                                           jlong annotPtr) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return 0;
+    return FPDFAnnot_GetOptionCount(annot);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetOptionLabel(JNIEnv *env, jobject thiz,
+                                                           jlong annotPtr, jint index) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return nullptr;
+    unsigned long size = FPDFAnnot_GetOptionLabel(annot, index, nullptr, 0);
+    if (size == 0) return env->NewStringUTF("");
+    unsigned short *buffer = new unsigned short[size];
+    FPDFAnnot_GetOptionLabel(annot, index, buffer, size);
+    jstring result = env->NewString((jchar *) buffer, size / 2 - 1);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotIsOptionSelected(JNIEnv *env, jobject thiz,
+                                                             jlong annotPtr, jint index) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return JNI_FALSE;
+    return FPDFAnnot_IsOptionSelected(annot, index) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotIsChecked(JNIEnv *env, jobject thiz,
+                                                       jlong annotPtr) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return JNI_FALSE;
+    return FPDFAnnot_IsChecked(annot) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetFocusableSubtypesCount(JNIEnv *env, jobject thiz,
+                                                                      jlong annotPtr) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return 0;
+    return FPDFAnnot_GetFocusableSubtypesCount(annot);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetFocusableSubtypes(JNIEnv *env, jobject thiz,
+                                                                 jlong annotPtr, jintArray subtypes) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return JNI_FALSE;
+    int count = FPDFAnnot_GetFocusableSubtypesCount(annot);
+    if (count == 0) return JNI_FALSE;
+    int *buffer = new int[count];
+    if (!FPDFAnnot_GetFocusableSubtypes(annot, buffer, count)) {
+        delete[] buffer;
+        return JNI_FALSE;
+    }
+    jintArray result = env->NewIntArray(count);
+    env->SetIntArrayRegion(result, 0, count, buffer);
+    delete[] buffer;
+    return JNI_TRUE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotSetFocusableSubtypes(JNIEnv *env, jobject thiz,
+                                                                 jlong annotPtr, jintArray subtypes) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return JNI_FALSE;
+    jint *body = env->GetIntArrayElements(subtypes, nullptr);
+    int count = env->GetArrayLength(subtypes);
+    FPDF_BOOL result = FPDFAnnot_SetFocusableSubtypes(annot, (int *) body, count);
+    env->ReleaseIntArrayElements(subtypes, body, 0);
+    return result ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetLinkedAnnot(JNIEnv *env, jobject thiz,
+                                                           jlong annotPtr, int subtype) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return 0;
+    return (jlong) FPDFAnnot_GetLinkedAnnot(annot, subtype);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetLine(JNIEnv *env, jobject thiz,
+                                                     jlong annotPtr, jdoubleArray line) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return JNI_FALSE;
+    double x1 = 0, y1 = 0, x2 = 0, y2 = 0;
+    if (!FPDFAnnot_GetLine(annot, &x1, &y1, &x2, &y2)) return JNI_FALSE;
+    jdouble *body = env->GetDoubleArrayElements(line, nullptr);
+    body[0] = x1; body[1] = y1; body[2] = x2; body[3] = y2;
+    env->ReleaseDoubleArrayElements(line, body, 0);
+    return JNI_TRUE;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetVerticesCount(JNIEnv *env, jobject thiz,
+                                                             jlong annotPtr) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return 0;
+    return FPDFAnnot_GetVerticesCount(annot);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetVertices(JNIEnv *env, jobject thiz,
+                                                        jlong annotPtr, jfloatArray vertices) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return JNI_FALSE;
+    int count = FPDFAnnot_GetVerticesCount(annot);
+    if (count == 0) return JNI_FALSE;
+    float *buffer = new float[count * 2];
+    if (!FPDFAnnot_GetVertices(annot, buffer, count)) {
+        delete[] buffer;
+        return JNI_FALSE;
+    }
+    env->SetFloatArrayRegion(vertices, 0, count * 2, buffer);
+    delete[] buffer;
+    return JNI_TRUE;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetInkListCount(JNIEnv *env, jobject thiz,
+                                                            jlong annotPtr) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return 0;
+    return FPDFAnnot_GetInkListCount(annot);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetInkListPath(JNIEnv *env, jobject thiz,
+                                                           jlong annotPtr, jint index,
+                                                           jfloatArray points) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return JNI_FALSE;
+    int count = FPDFAnnot_GetInkListPath(annot, index, nullptr, 0);
+    if (count == 0) return JNI_FALSE;
+    float *buffer = new float[count * 2];
+    if (!FPDFAnnot_GetInkListPath(annot, index, buffer, count)) {
+        delete[] buffer;
+        return JNI_FALSE;
+    }
+    env->SetFloatArrayRegion(points, 0, count * 2, buffer);
+    delete[] buffer;
+    return JNI_TRUE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotRemoveInkList(JNIEnv *env, jobject thiz,
+                                                          jlong annotPtr) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return JNI_FALSE;
+    return FPDFAnnot_RemoveInkList(annot) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotAddInkStroke(JNIEnv *env, jobject thiz,
+                                                         jlong annotPtr, jfloatArray points) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return JNI_FALSE;
+    jfloat *body = env->GetFloatArrayElements(points, nullptr);
+    int count = env->GetArrayLength(points) / 2;
+    FPDF_BOOL result = FPDFAnnot_AddInkStroke(annot, (const FS_POINTF *) body, count);
+    env->ReleaseFloatArrayElements(points, body, 0);
+    return result ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotHasAttachmentPoints(JNIEnv *env, jobject thiz,
+                                                                jlong annotPtr) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return JNI_FALSE;
+    return FPDFAnnot_HasAttachmentPoints(annot) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotSetAttachmentPoints(JNIEnv *env, jobject thiz,
+                                                                 jlong annotPtr, jfloatArray quadPoints) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return JNI_FALSE;
+    jfloat *body = env->GetFloatArrayElements(quadPoints, nullptr);
+    int count = env->GetArrayLength(quadPoints) / 8;
+    FS_QUADPOINTSF *points = new FS_QUADPOINTSF[count];
+    for (int i = 0; i < count; i++) {
+        points[i].x1 = body[i*8]; points[i].y1 = body[i*8+1];
+        points[i].x2 = body[i*8+2]; points[i].y2 = body[i*8+3];
+        points[i].x3 = body[i*8+4]; points[i].y3 = body[i*8+5];
+        points[i].x4 = body[i*8+6]; points[i].y4 = body[i*8+7];
+    }
+    FPDF_BOOL result = FPDFAnnot_SetAttachmentPoints(annot, points, count);
+    delete[] points;
+    env->ReleaseFloatArrayElements(quadPoints, body, 0);
+    return result ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotAppendAttachmentPoints(JNIEnv *env, jobject thiz,
+                                                                   jlong annotPtr, jfloatArray quadPoints) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return JNI_FALSE;
+    jfloat *body = env->GetFloatArrayElements(quadPoints, nullptr);
+    int count = env->GetArrayLength(quadPoints) / 8;
+    FS_QUADPOINTSF *points = new FS_QUADPOINTSF[count];
+    for (int i = 0; i < count; i++) {
+        points[i].x1 = body[i*8]; points[i].y1 = body[i*8+1];
+        points[i].x2 = body[i*8+2]; points[i].y2 = body[i*8+3];
+        points[i].x3 = body[i*8+4]; points[i].y3 = body[i*8+5];
+        points[i].x4 = body[i*8+6]; points[i].y4 = body[i*8+7];
+    }
+    FPDF_BOOL result = FPDFAnnot_AppendAttachmentPoints(annot, points, count);
+    delete[] points;
+    env->ReleaseFloatArrayElements(quadPoints, body, 0);
+    return result ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotCountAttachmentPoints(JNIEnv *env, jobject thiz,
+                                                                  jlong annotPtr) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return 0;
+    return FPDFAnnot_CountAttachmentPoints(annot);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetObjectCount(JNIEnv *env, jobject thiz,
+                                                           jlong annotPtr) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return 0;
+    return FPDFAnnot_GetObjectCount(annot);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetObject(JNIEnv *env, jobject thiz,
+                                                      jlong annotPtr, jint index) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return 0;
+    return (jlong) FPDFAnnot_GetObject(annot, index);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotAppendObject(JNIEnv *env, jobject thiz,
+                                                         jlong annotPtr, jlong objPtr) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) objPtr;
+    if (!annot || !obj) return JNI_FALSE;
+    return FPDFAnnot_AppendObject(annot, obj) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotRemoveObject(JNIEnv *env, jobject thiz,
+                                                         jlong annotPtr, jint index) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return JNI_FALSE;
+    return FPDFAnnot_RemoveObject(annot, index) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotUpdateObject(JNIEnv *env, jobject thiz,
+                                                         jlong annotPtr, jlong objPtr) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) objPtr;
+    if (!annot || !obj) return JNI_FALSE;
+    return FPDFAnnot_UpdateObject(annot, obj) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetAP(JNIEnv *env, jobject thiz,
+                                                  jlong annotPtr, jint mode) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return 0;
+    return FPDFAnnot_GetAP(annot, mode, nullptr, 0);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotSetAP(JNIEnv *env, jobject thiz,
+                                                  jlong annotPtr, jint mode, jstring value) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return 0;
+    const char* cValue = env->GetStringUTFChars(value, nullptr);
+    unsigned long size = FPDFAnnot_SetAP(annot, mode, (FPDF_BYTESTRING) cValue);
+    env->ReleaseStringUTFChars(value, cValue);
+    return size;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetFileAttachment(JNIEnv *env, jobject thiz,
+                                                              jlong annotPtr) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return 0;
+    return (jlong) FPDFAnnot_GetFileAttachment(annot);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotAddFileAttachment(JNIEnv *env, jobject thiz,
+                                                              jlong annotPtr, jstring name) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return JNI_FALSE;
+    const char* cName = env->GetStringUTFChars(name, nullptr);
+    FPDF_BOOL result = FPDFAnnot_AddFileAttachment(annot, cName);
+    env->ReleaseStringUTFChars(name, cName);
+    return result ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetFormFieldAtPoint(JNIEnv *env, jobject thiz,
+                                                                jlong docPtr, jlong pagePtr,
+                                                                jdouble x, jdouble y) {
+    FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!doc || !page) return 0;
+    return (jlong) FPDFAnnot_GetFormFieldAtPoint(doc, page, x, y);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetFormFieldFlags(JNIEnv *env, jobject thiz,
+                                                              jlong annotPtr) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return 0;
+    return FPDFAnnot_GetFormFieldFlags(annot);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotSetFormFieldFlags(JNIEnv *env, jobject thiz,
+                                                              jlong annotPtr, jint flags) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return JNI_FALSE;
+    return FPDFAnnot_SetFormFieldFlags(annot, flags) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetFormAdditionalActionJavaScript(JNIEnv *env, jobject thiz,
+                                                                              jlong annotPtr, jint eventType) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return nullptr;
+    unsigned long size = FPDFAnnot_GetFormAdditionalActionJavaScript(annot, eventType, nullptr, 0);
+    if (size == 0) return env->NewStringUTF("");
+    unsigned short *buffer = new unsigned short[size];
+    FPDFAnnot_GetFormAdditionalActionJavaScript(annot, eventType, buffer, size);
+    jstring result = env->NewString((jchar *) buffer, size / 2 - 1);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotIsSupportedSubtype(JNIEnv *env, jobject thiz,
+                                                               jint subtype) {
+    return FPDFAnnot_IsSupportedSubtype(subtype) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotIsObjectSupportedSubtype(JNIEnv *env, jobject thiz,
+                                                                     jint subtype) {
+    return FPDFAnnot_IsObjectSupportedSubtype(subtype) ? JNI_TRUE : JNI_FALSE;
+}
+
+// --- fpdf_edit.h Additional Bindings ---
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjCreateNew(JNIEnv *env, jobject thiz,
+                                                        jlong docPtr) {
+    FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
+    if (!doc) return 0;
+    return (jlong) FPDFPageObj_CreateNew(doc);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjCreateNewRect(JNIEnv *env, jobject thiz,
+                                                           jlong docPtr) {
+    FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
+    if (!doc) return 0;
+    return (jlong) FPDFPageObj_CreateNewRect(doc);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjCreateTextObj(JNIEnv *env, jobject thiz,
+                                                           jlong docPtr, jstring fontName) {
+    FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
+    if (!doc) return 0;
+    const char* cName = env->GetStringUTFChars(fontName, nullptr);
+    FPDF_FONT font = FPDFText_LoadStandardFont(doc, cName);
+    env->ReleaseStringUTFChars(fontName, cName);
+    if (!font) return 0;
+    return (jlong) FPDFPageObj_CreateTextObj(doc, font);
+}
+
+JNIEXPORT void JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjDestroy(JNIEnv *env, jobject thiz,
+                                                      jlong pageObjPtr) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (obj) FPDFPageObj_Destroy(obj);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjHasTransparency(JNIEnv *env, jobject thiz,
+                                                             jlong pageObjPtr) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (!obj) return JNI_FALSE;
+    return FPDFPageObj_HasTransparency(obj) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjGetMatrix(JNIEnv *env, jobject thiz,
+                                                        jlong pageObjPtr, jfloatArray matrix) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (!obj) return JNI_FALSE;
+    FS_MATRIX fsMatrix;
+    if (!FPDFPageObj_GetMatrix(obj, &fsMatrix)) return JNI_FALSE;
+    jfloat *body = env->GetFloatArrayElements(matrix, nullptr);
+    body[0] = fsMatrix.a; body[1] = fsMatrix.b;
+    body[2] = fsMatrix.c; body[3] = fsMatrix.d;
+    body[4] = fsMatrix.e; body[5] = fsMatrix.f;
+    env->ReleaseFloatArrayElements(matrix, body, 0);
+    return JNI_TRUE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjSetMatrix(JNIEnv *env, jobject thiz,
+                                                        jlong pageObjPtr, jfloatArray matrix) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (!obj) return JNI_FALSE;
+    jfloat *body = env->GetFloatArrayElements(matrix, nullptr);
+    FS_MATRIX fsMatrix = {body[0], body[1], body[2], body[3], body[4], body[5]};
+    FPDF_BOOL result = FPDFPageObj_SetMatrix(obj, &fsMatrix);
+    env->ReleaseFloatArrayElements(matrix, body, 0);
+    return result ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjTransformF(JNIEnv *env, jobject thiz,
+                                                         jlong pageObjPtr, jfloat a, jfloat b, jfloat c, jfloat d, jfloat e, jfloat f) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (!obj) return JNI_FALSE;
+    return FPDFPageObj_TransformF(obj, a, b, c, d, e, f) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjGetRotatedBounds(JNIEnv *env, jobject thiz,
+                                                               jlong pageObjPtr, jfloatArray rect) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (!obj) return JNI_FALSE;
+    FS_QUADPOINTSF quad;
+    if (!FPDFPageObj_GetRotatedBounds(obj, &quad)) return JNI_FALSE;
+    jfloat *body = env->GetFloatArrayElements(rect, nullptr);
+    body[0] = quad.x1; body[1] = quad.y1;
+    body[2] = quad.x2; body[3] = quad.y2;
+    body[4] = quad.x3; body[5] = quad.y3;
+    body[6] = quad.x4; body[7] = quad.y4;
+    env->ReleaseFloatArrayElements(rect, body, 0);
+    return JNI_TRUE;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjGetLineCap(JNIEnv *env, jobject thiz,
+                                                         jlong pageObjPtr) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (!obj) return 0;
+    return FPDFPageObj_GetLineCap(obj);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjSetLineCap(JNIEnv *env, jobject thiz,
+                                                         jlong pageObjPtr, jint lineCap) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (!obj) return JNI_FALSE;
+    return FPDFPageObj_SetLineCap(obj, (FPDF_LINECAP) lineCap) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjGetLineJoin(JNIEnv *env, jobject thiz,
+                                                          jlong pageObjPtr) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (!obj) return 0;
+    return FPDFPageObj_GetLineJoin(obj);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjSetLineJoin(JNIEnv *env, jobject thiz,
+                                                          jlong pageObjPtr, jint lineJoin) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (!obj) return JNI_FALSE;
+    return FPDFPageObj_SetLineJoin(obj, (FPDF_LINEJOIN) lineJoin) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jfloat JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjGetStrokeWidth(JNIEnv *env, jobject thiz,
+                                                             jlong pageObjPtr) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (!obj) return 0;
+    return FPDFPageObj_GetStrokeWidth(obj);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjGetDashPhase(JNIEnv *env, jobject thiz,
+                                                           jlong pageObjPtr, jfloatArray phase) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (!obj) return JNI_FALSE;
+    float dashPhase = 0;
+    if (!FPDFPageObj_GetDashPhase(obj, &dashPhase)) return JNI_FALSE;
+    jfloat *body = env->GetFloatArrayElements(phase, nullptr);
+    body[0] = dashPhase;
+    env->ReleaseFloatArrayElements(phase, body, 0);
+    return JNI_TRUE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjSetDashPhase(JNIEnv *env, jobject thiz,
+                                                           jlong pageObjPtr, jfloat phase) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (!obj) return JNI_FALSE;
+    return FPDFPageObj_SetDashPhase(obj, phase) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjGetDashCount(JNIEnv *env, jobject thiz,
+                                                           jlong pageObjPtr) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (!obj) return 0;
+    return FPDFPageObj_GetDashCount(obj);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjGetDashArray(JNIEnv *env, jobject thiz,
+                                                           jlong pageObjPtr, jfloatArray dashes) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (!obj) return JNI_FALSE;
+    int count = FPDFPageObj_GetDashCount(obj);
+    if (count == 0) return JNI_FALSE;
+    float *buffer = new float[count];
+    if (!FPDFPageObj_GetDashArray(obj, buffer, count)) {
+        delete[] buffer;
+        return JNI_FALSE;
+    }
+    env->SetFloatArrayRegion(dashes, 0, count, buffer);
+    delete[] buffer;
+    return JNI_TRUE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjSetDashArray(JNIEnv *env, jobject thiz,
+                                                           jlong pageObjPtr, jfloatArray dashes) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (!obj) return JNI_FALSE;
+    jfloat *body = env->GetFloatArrayElements(dashes, nullptr);
+    int count = env->GetArrayLength(dashes);
+    FPDF_BOOL result = FPDFPageObj_SetDashArray(obj, body, count, 0);
+    env->ReleaseFloatArrayElements(dashes, body, 0);
+    return result ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjGetIsActive(JNIEnv *env, jobject thiz,
+                                                          jlong pageObjPtr) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (!obj) return JNI_FALSE;
+    return FPDFPageObj_GetIsActive(obj) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjSetIsActive(JNIEnv *env, jobject thiz,
+                                                          jlong pageObjPtr, jboolean active) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (!obj) return JNI_FALSE;
+    return FPDFPageObj_SetIsActive(obj, active ? 1 : 0) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjCountMarks(JNIEnv *env, jobject thiz,
+                                                         jlong pageObjPtr) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (!obj) return 0;
+    return FPDFPageObj_CountMarks(obj);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjGetMark(JNIEnv *env, jobject thiz,
+                                                      jlong pageObjPtr, jint index) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (!obj) return 0;
+    return (jlong) FPDFPageObj_GetMark(obj, index);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjAddMark(JNIEnv *env, jobject thiz,
+                                                      jlong pageObjPtr, jstring name) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (!obj) return 0;
+    const char* cName = env->GetStringUTFChars(name, nullptr);
+    FPDF_MARKED_CONTENT_ID id = FPDFPageObj_AddMark(obj, cName);
+    env->ReleaseStringUTFChars(name, cName);
+    return (jlong) id;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjRemoveMark(JNIEnv *env, jobject thiz,
+                                                         jlong pageObjPtr, jlong markPtr) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    FPDF_MARKED_CONTENT_ID mark = (FPDF_MARKED_CONTENT_ID) markPtr;
+    if (!obj || !mark) return JNI_FALSE;
+    return FPDFPageObj_RemoveMark(obj, mark) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjGetMarkedContentID(JNIEnv *env, jobject thiz,
+                                                                 jlong pageObjPtr) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (!obj) return -1;
+    return FPDFPageObj_GetMarkedContentID(obj);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePageObjSetBlendMode(JNIEnv *env, jobject thiz,
+                                                           jlong pageObjPtr, jint blendMode) {
+    FPDF_PAGEOBJECT obj = (FPDF_PAGEOBJECT) pageObjPtr;
+    if (!obj) return JNI_FALSE;
+    return FPDFPageObj_SetBlendMode(obj, (FPDF_BLENDMODE) blendMode) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePathCountSegments(JNIEnv *env, jobject thiz,
+                                                         jlong pathObjPtr) {
+    FPDF_PAGEOBJECT pathObj = (FPDF_PAGEOBJECT) pathObjPtr;
+    if (!pathObj) return 0;
+    return FPDFPath_CountSegments(pathObj);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePathGetPathSegment(JNIEnv *env, jobject thiz,
+                                                          jlong pathObjPtr, jint index) {
+    FPDF_PAGEOBJECT pathObj = (FPDF_PAGEOBJECT) pathObjPtr;
+    if (!pathObj) return 0;
+    return (jlong) FPDFPath_GetPathSegment(pathObj, index);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativePathGetDrawMode(JNIEnv *env, jobject thiz,
+                                                       jlong pathObjPtr) {
+    FPDF_PAGEOBJECT pathObj = (FPDF_PAGEOBJECT) pathObjPtr;
+    if (!pathObj) return 0;
+    return FPDFPath_GetDrawMode(pathObj);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeTextObjGetFont(JNIEnv *env, jobject thiz,
+                                                      jlong textObjPtr) {
+    FPDF_PAGEOBJECT textObj = (FPDF_PAGEOBJECT) textObjPtr;
+    if (!textObj) return 0;
+    return (jlong) FPDFTextObj_GetFont(textObj);
+}
+
+JNIEXPORT jdouble JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeTextObjGetFontSize(JNIEnv *env, jobject thiz,
+                                                          jlong textObjPtr) {
+    FPDF_PAGEOBJECT textObj = (FPDF_PAGEOBJECT) textObjPtr;
+    if (!textObj) return 0;
+    return FPDFTextObj_GetFontSize(textObj);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeTextObjGetText(JNIEnv *env, jobject thiz,
+                                                      jlong docPtr, jlong pagePtr, jlong textObjPtr) {
+    FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    FPDF_PAGEOBJECT textObj = (FPDF_PAGEOBJECT) textObjPtr;
+    if (!doc || !page || !textObj) return nullptr;
+    unsigned long size = FPDFTextObj_GetText(doc, page, textObj, nullptr, 0);
+    if (size == 0) return env->NewStringUTF("");
+    unsigned short *buffer = new unsigned short[size];
+    FPDFTextObj_GetText(doc, page, textObj, buffer, size);
+    jstring result = env->NewString((jchar *) buffer, size / 2 - 1);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeTextObjGetTextRenderMode(JNIEnv *env, jobject thiz,
+                                                                jlong textObjPtr) {
+    FPDF_PAGEOBJECT textObj = (FPDF_PAGEOBJECT) textObjPtr;
+    if (!textObj) return 0;
+    return FPDFTextObj_GetTextRenderMode(textObj);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeTextObjSetTextRenderMode(JNIEnv *env, jobject thiz,
+                                                                jlong textObjPtr, jint renderMode) {
+    FPDF_PAGEOBJECT textObj = (FPDF_PAGEOBJECT) textObjPtr;
+    if (!textObj) return JNI_FALSE;
+    return FPDFTextObj_SetTextRenderMode(textObj, (FPDF_TEXT_RENDERMODE) renderMode) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeImageObjSetMatrix(JNIEnv *env, jobject thiz,
+                                                         jlong imageObjPtr, jfloat a, jfloat b, jfloat c, jfloat d, jfloat e, jfloat f) {
+    FPDF_PAGEOBJECT imageObj = (FPDF_PAGEOBJECT) imageObjPtr;
+    if (!imageObj) return JNI_FALSE;
+    return FPDFImageObj_SetMatrix(imageObj, a, b, c, d, e, f) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeImageObjGetImageFilterCount(JNIEnv *env, jobject thiz,
+                                                                   jlong imageObjPtr) {
+    FPDF_PAGEOBJECT imageObj = (FPDF_PAGEOBJECT) imageObjPtr;
+    if (!imageObj) return 0;
+    return FPDFImageObj_GetImageFilterCount(imageObj);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeImageObjGetImageFilter(JNIEnv *env, jobject thiz,
+                                                              jlong imageObjPtr, jint index) {
+    FPDF_PAGEOBJECT imageObj = (FPDF_PAGEOBJECT) imageObjPtr;
+    if (!imageObj) return nullptr;
+    unsigned long size = FPDFImageObj_GetImageFilter(imageObj, index, nullptr, 0);
+    if (size == 0) return env->NewStringUTF("");
+    char *buffer = new char[size];
+    FPDFImageObj_GetImageFilter(imageObj, index, buffer, size);
+    jstring result = env->NewStringUTF(buffer);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeImageObjGetImagePixelSize(JNIEnv *env, jobject thiz,
+                                                                 jlong imageObjPtr, jintArray size) {
+    FPDF_PAGEOBJECT imageObj = (FPDF_PAGEOBJECT) imageObjPtr;
+    if (!imageObj) return JNI_FALSE;
+    int width = 0, height = 0;
+    if (!FPDFImageObj_GetImagePixelSize(imageObj, &width, &height)) return JNI_FALSE;
+    jint *body = env->GetIntArrayElements(size, nullptr);
+    body[0] = width; body[1] = height;
+    env->ReleaseIntArrayElements(size, body, 0);
+    return JNI_TRUE;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeImageObjGetImageDataDecoded(JNIEnv *env, jobject thiz,
+                                                                   jlong imageObjPtr) {
+    FPDF_PAGEOBJECT imageObj = (FPDF_PAGEOBJECT) imageObjPtr;
+    if (!imageObj) return nullptr;
+    unsigned long size = FPDFImageObj_GetImageDataDecoded(imageObj, nullptr, 0);
+    if (size == 0) return nullptr;
+    unsigned char *buffer = new unsigned char[size];
+    FPDFImageObj_GetImageDataDecoded(imageObj, buffer, size);
+    jbyteArray result = env->NewByteArray(size);
+    env->SetByteArrayRegion(result, 0, size, (jbyte*) buffer);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeImageObjGetImageDataRaw(JNIEnv *env, jobject thiz,
+                                                               jlong imageObjPtr) {
+    FPDF_PAGEOBJECT imageObj = (FPDF_PAGEOBJECT) imageObjPtr;
+    if (!imageObj) return nullptr;
+    unsigned long size = FPDFImageObj_GetImageDataRaw(imageObj, nullptr, 0);
+    if (size == 0) return nullptr;
+    unsigned char *buffer = new unsigned char[size];
+    FPDFImageObj_GetImageDataRaw(imageObj, buffer, size);
+    jbyteArray result = env->NewByteArray(size);
+    env->SetByteArrayRegion(result, 0, size, (jbyte*) buffer);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeImageObjGetBitmap(JNIEnv *env, jobject thiz,
+                                                         jlong imageObjPtr) {
+    FPDF_PAGEOBJECT imageObj = (FPDF_PAGEOBJECT) imageObjPtr;
+    if (!imageObj) return 0;
+    return (jlong) FPDFImageObj_GetBitmap(imageObj);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeImageObjSetBitmap(JNIEnv *env, jobject thiz,
+                                                         jlong imageObjPtr, jint width, jint height, jint stride, jintArray pixels) {
+    FPDF_PAGEOBJECT imageObj = (FPDF_PAGEOBJECT) imageObjPtr;
+    if (!imageObj) return JNI_FALSE;
+    jint *body = env->GetIntArrayElements(pixels, nullptr);
+    FPDF_BOOL result = FPDFImageObj_SetBitmap(imageObj, width, height, stride, (FPDF_BITMAP) body);
+    env->ReleaseIntArrayElements(pixels, body, 0);
+    return result ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeImageObjGetRenderedBitmap(JNIEnv *env, jobject thiz,
+                                                                 jlong docPtr, jlong pagePtr, jlong imageObjPtr) {
+    FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    FPDF_PAGEOBJECT imageObj = (FPDF_PAGEOBJECT) imageObjPtr;
+    if (!doc || !page || !imageObj) return 0;
+    return (jlong) FPDFImageObj_GetRenderedBitmap(doc, page, imageObj);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeImageObjLoadJpegFile(JNIEnv *env, jobject thiz,
+                                                            jlong imageObjPtr, jobject fileAccess) {
+    // Requires FPDF_FILEACCESS - skip for now
+    return JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeImageObjLoadJpegFileInline(JNIEnv *env, jobject thiz,
+                                                                   jlong imageObjPtr, jobject fileAccess) {
+    // Requires FPDF_FILEACCESS - skip for now
+    return JNI_FALSE;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeImageObjGetIccProfileDataDecoded(JNIEnv *env, jobject thiz,
+                                                                        jlong imageObjPtr) {
+    FPDF_PAGEOBJECT imageObj = (FPDF_PAGEOBJECT) imageObjPtr;
+    if (!imageObj) return nullptr;
+    unsigned long size = FPDFImageObj_GetIccProfileDataDecoded(imageObj, nullptr, 0);
+    if (size == 0) return nullptr;
+    unsigned char *buffer = new unsigned char[size];
+    FPDFImageObj_GetIccProfileDataDecoded(imageObj, buffer, size);
+    jbyteArray result = env->NewByteArray(size);
+    env->SetByteArrayRegion(result, 0, size, (jbyte*) buffer);
+    delete[] buffer;
+    return result;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeImageObjGetImageMetadata(JNIEnv *env, jobject thiz,
+                                                                jlong imageObjPtr, jintArray metadata) {
+    FPDF_PAGEOBJECT imageObj = (FPDF_PAGEOBJECT) imageObjPtr;
+    if (!imageObj) return JNI_FALSE;
+    // FPDF_IMAGEMETADATA contains flags, width, height, horz_size, vert_size, bits_per_component, colorspace
+    // Simplified: return basic info
+    return JNI_FALSE;
 }
 
 } // extern "C"
