@@ -19,10 +19,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`nativeDestGetView` return type**: JNI return type corrected from `jboolean` to `jlong` to match Kotlin `Long` declaration.
 - **`nativeAnnotGetFocusableSubtypes` buffer bug**: JNI was calling `NewIntArray` instead of writing to the caller's passed-in `subtypes` array.
 - **Missing public wrapper**: Added `annotGetFocusableSubtypes()` returning `IntArray?`.
+- **Phase 8+ PDFium 150 API mismatches**: Fixed 27 compilation errors across 20 object/edit functions:
+  - `FPDFAnnot_GetVertices`/`FPDFAnnot_GetInkListPath`: buffer type fixed to `FS_POINTF*`.
+  - `FPDFPageObj_CreateNew`/`CreateNewRect`/`CreateTextObj`: corrected signatures (removed non-existent function, added rect coords, added font_size).
+  - `FPDFPageObj_TransformF`: scalar args packed into `FS_MATRIX*` struct.
+  - `FPDFPageObj_SetLineCap`/`SetLineJoin`: removed deleted enum types (`FPDF_LINECAP`/`FPDF_LINEJOIN`).
+  - `FPDFPageObj_GetStrokeWidth`/`GetIsActive`/`GetFontSize`/`PathGetDrawMode`/`GetFontSize`: added missing out-params.
+  - `FPDFPageObj_AddMark`/`RemoveMark`: replaced undeclared `FPDF_MARKED_CONTENT_ID` with `FPDF_PAGEOBJECTMARK`.
+  - `FPDFPageObj_SetBlendMode`: replaced deleted `FPDF_BLENDMODE` cast with string mapping (16 blend mode names).
+  - `FPDFTextObj_GetText`: changed from 5 args `(doc, page, textObj, buf, len)` to 4 args `(textObj, textPage, buf, len)` using `FPDF_TEXTPAGE`.
+  - `FPDFImageObj_GetImagePixelSize`: `int*` → `unsigned int*`.
+  - `FPDFImageObj_SetBitmap`/`LoadJpegFile`/`LoadJpegFileInline`: updated to new API requiring `FPDF_PAGE*` array + count.
+  - `FPDFImageObj_GetIccProfileDataDecoded`: updated to new 5-arg signature with `size_t*` out-param.
+  - All corresponding Kotlin `private external fun` and public wrapper signatures updated.
 
 ### Changed
 - **Complete API surface**: All 22 PDFium C API headers are now fully bound — 396 JNI functions, 396 Kotlin external declarations.
 - **Binary size**: `libpdfium.so` stable at 6.1 MB (no new native dependencies).
+- **`FPDFPageObj_SetBlendMode`**: Upgraded from stub to real implementation with blend mode string lookup table.
+- **`FPDFImageObj_SetBitmap`**: Upgraded from broken pixel cast to proper `FPDF_BITMAP` creation via `FPDFBitmap_CreateEx`.
 
 ## [1.0.6] - 2026-06-04
 

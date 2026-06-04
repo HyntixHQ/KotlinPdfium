@@ -686,23 +686,23 @@ class PdfiumCore {
     private external fun nativeAnnotSetURI(annotPtr: Long, uri: String): Boolean
     private external fun nativeAnnotGetBorder(annotPtr: Long, border: FloatArray): Boolean
     private external fun nativeAnnotSetBorder(annotPtr: Long, horizontal: Float, vertical: Float, corner: Float): Boolean
-    private external fun nativeAnnotGetFontColor(annotPtr: Long, color: IntArray): Boolean
-    private external fun nativeAnnotSetFontColor(annotPtr: Long, r: Int, g: Int, b: Int, a: Int): Boolean
-    private external fun nativeAnnotGetFontSize(annotPtr: Long): Double
-    private external fun nativeAnnotGetFormFieldType(annotPtr: Long): Int
-    private external fun nativeAnnotGetFormFieldName(annotPtr: Long): String?
-    private external fun nativeAnnotGetFormFieldValue(annotPtr: Long): String?
-    private external fun nativeAnnotGetFormControlCount(annotPtr: Long): Int
-    private external fun nativeAnnotGetFormControlIndex(annotPtr: Long): Int
-    private external fun nativeAnnotGetFormFieldAlternateName(annotPtr: Long, index: Int): String?
-    private external fun nativeAnnotGetOptionCount(annotPtr: Long): Int
-    private external fun nativeAnnotGetOptionLabel(annotPtr: Long, index: Int): String?
-    private external fun nativeAnnotIsOptionSelected(annotPtr: Long, index: Int): Boolean
-    private external fun nativeAnnotIsChecked(annotPtr: Long): Boolean
-    private external fun nativeAnnotGetFocusableSubtypesCount(annotPtr: Long): Int
-    private external fun nativeAnnotGetFocusableSubtypes(annotPtr: Long, subtypes: IntArray): Boolean
-    private external fun nativeAnnotSetFocusableSubtypes(annotPtr: Long, subtypes: IntArray): Boolean
-    private external fun nativeAnnotGetLinkedAnnot(annotPtr: Long, subtype: Int): Long
+    private external fun nativeAnnotGetFontColor(formHandlePtr: Long, annotPtr: Long, color: IntArray): Boolean
+    private external fun nativeAnnotSetFontColor(formHandlePtr: Long, annotPtr: Long, r: Int, g: Int, b: Int): Boolean
+    private external fun nativeAnnotGetFontSize(formHandlePtr: Long, annotPtr: Long): Double
+    private external fun nativeAnnotGetFormFieldType(formHandlePtr: Long, annotPtr: Long): Int
+    private external fun nativeAnnotGetFormFieldName(formHandlePtr: Long, annotPtr: Long): String?
+    private external fun nativeAnnotGetFormFieldValue(formHandlePtr: Long, annotPtr: Long): String?
+    private external fun nativeAnnotGetFormControlCount(formHandlePtr: Long, annotPtr: Long): Int
+    private external fun nativeAnnotGetFormControlIndex(formHandlePtr: Long, annotPtr: Long): Int
+    private external fun nativeAnnotGetFormFieldAlternateName(formHandlePtr: Long, annotPtr: Long): String?
+    private external fun nativeAnnotGetOptionCount(formHandlePtr: Long, annotPtr: Long): Int
+    private external fun nativeAnnotGetOptionLabel(formHandlePtr: Long, annotPtr: Long, index: Int): String?
+    private external fun nativeAnnotIsOptionSelected(formHandlePtr: Long, annotPtr: Long, index: Int): Boolean
+    private external fun nativeAnnotIsChecked(formHandlePtr: Long, annotPtr: Long): Boolean
+    private external fun nativeAnnotGetFocusableSubtypesCount(formHandlePtr: Long): Int
+    private external fun nativeAnnotGetFocusableSubtypes(formHandlePtr: Long, subtypes: IntArray): Boolean
+    private external fun nativeAnnotSetFocusableSubtypes(formHandlePtr: Long, subtypes: IntArray): Boolean
+    private external fun nativeAnnotGetLinkedAnnot(annotPtr: Long, key: String): Long
     private external fun nativeAnnotGetLine(annotPtr: Long, line: DoubleArray): Boolean
     private external fun nativeAnnotGetVerticesCount(annotPtr: Long): Int
     private external fun nativeAnnotGetVertices(annotPtr: Long, vertices: FloatArray): Boolean
@@ -720,13 +720,13 @@ class PdfiumCore {
     private external fun nativeAnnotRemoveObject(annotPtr: Long, index: Int): Boolean
     private external fun nativeAnnotUpdateObject(annotPtr: Long, objPtr: Long): Boolean
     private external fun nativeAnnotGetAP(annotPtr: Long, mode: Int): Int
-    private external fun nativeAnnotSetAP(annotPtr: Long, mode: Int, value: String): Int
+    private external fun nativeAnnotSetAP(annotPtr: Long, mode: Int, value: String): Boolean
     private external fun nativeAnnotGetFileAttachment(annotPtr: Long): Long
-    private external fun nativeAnnotAddFileAttachment(annotPtr: Long, name: String): Boolean
-    private external fun nativeAnnotGetFormFieldAtPoint(docPtr: Long, pagePtr: Long, x: Double, y: Double): Long
-    private external fun nativeAnnotGetFormFieldFlags(annotPtr: Long): Int
-    private external fun nativeAnnotSetFormFieldFlags(annotPtr: Long, flags: Int): Boolean
-    private external fun nativeAnnotGetFormAdditionalActionJavaScript(annotPtr: Long, eventType: Int): String?
+    private external fun nativeAnnotAddFileAttachment(annotPtr: Long, name: String): Long
+    private external fun nativeAnnotGetFormFieldAtPoint(formHandlePtr: Long, pagePtr: Long, x: Double, y: Double): Long
+    private external fun nativeAnnotGetFormFieldFlags(formHandlePtr: Long, annotPtr: Long): Int
+    private external fun nativeAnnotSetFormFieldFlags(formHandlePtr: Long, annotPtr: Long, flags: Int): Boolean
+    private external fun nativeAnnotGetFormAdditionalActionJavaScript(formHandlePtr: Long, annotPtr: Long, eventType: Int): String?
     private external fun nativeAnnotIsSupportedSubtype(subtype: Int): Boolean
     private external fun nativeAnnotIsObjectSupportedSubtype(subtype: Int): Boolean
 
@@ -773,32 +773,32 @@ class PdfiumCore {
     }
 
     fun annotSetBorder(annotPtr: Long, horizontal: Float, vertical: Float, corner: Float) = nativeAnnotSetBorder(annotPtr, horizontal, vertical, corner)
-    fun annotGetFontColor(annotPtr: Long): IntArray? {
+    fun annotGetFontColor(formHandlePtr: Long, annotPtr: Long): IntArray? {
         val color = IntArray(4)
-        return if (nativeAnnotGetFontColor(annotPtr, color)) color else null
+        return if (nativeAnnotGetFontColor(formHandlePtr, annotPtr, color)) color else null
     }
 
-    fun annotSetFontColor(annotPtr: Long, r: Int, g: Int, b: Int, a: Int) = nativeAnnotSetFontColor(annotPtr, r, g, b, a)
-    fun annotGetFontSize(annotPtr: Long) = nativeAnnotGetFontSize(annotPtr)
-    fun annotGetFormFieldType(annotPtr: Long) = nativeAnnotGetFormFieldType(annotPtr)
-    fun annotGetFormFieldName(annotPtr: Long) = nativeAnnotGetFormFieldName(annotPtr) ?: ""
-    fun annotGetFormFieldValue(annotPtr: Long) = nativeAnnotGetFormFieldValue(annotPtr) ?: ""
-    fun annotGetFormControlCount(annotPtr: Long) = nativeAnnotGetFormControlCount(annotPtr)
-    fun annotGetFormControlIndex(annotPtr: Long) = nativeAnnotGetFormControlIndex(annotPtr)
-    fun annotGetFormFieldAlternateName(annotPtr: Long, index: Int) = nativeAnnotGetFormFieldAlternateName(annotPtr, index) ?: ""
-    fun annotGetOptionCount(annotPtr: Long) = nativeAnnotGetOptionCount(annotPtr)
-    fun annotGetOptionLabel(annotPtr: Long, index: Int) = nativeAnnotGetOptionLabel(annotPtr, index) ?: ""
-    fun annotIsOptionSelected(annotPtr: Long, index: Int) = nativeAnnotIsOptionSelected(annotPtr, index)
-    fun annotIsChecked(annotPtr: Long) = nativeAnnotIsChecked(annotPtr)
-    fun annotGetFocusableSubtypesCount(annotPtr: Long): Int = nativeAnnotGetFocusableSubtypesCount(annotPtr)
-    fun annotGetFocusableSubtypes(annotPtr: Long): IntArray? {
-        val count = nativeAnnotGetFocusableSubtypesCount(annotPtr)
+    fun annotSetFontColor(formHandlePtr: Long, annotPtr: Long, r: Int, g: Int, b: Int) = nativeAnnotSetFontColor(formHandlePtr, annotPtr, r, g, b)
+    fun annotGetFontSize(formHandlePtr: Long, annotPtr: Long) = nativeAnnotGetFontSize(formHandlePtr, annotPtr)
+    fun annotGetFormFieldType(formHandlePtr: Long, annotPtr: Long) = nativeAnnotGetFormFieldType(formHandlePtr, annotPtr)
+    fun annotGetFormFieldName(formHandlePtr: Long, annotPtr: Long) = nativeAnnotGetFormFieldName(formHandlePtr, annotPtr) ?: ""
+    fun annotGetFormFieldValue(formHandlePtr: Long, annotPtr: Long) = nativeAnnotGetFormFieldValue(formHandlePtr, annotPtr) ?: ""
+    fun annotGetFormControlCount(formHandlePtr: Long, annotPtr: Long) = nativeAnnotGetFormControlCount(formHandlePtr, annotPtr)
+    fun annotGetFormControlIndex(formHandlePtr: Long, annotPtr: Long) = nativeAnnotGetFormControlIndex(formHandlePtr, annotPtr)
+    fun annotGetFormFieldAlternateName(formHandlePtr: Long, annotPtr: Long) = nativeAnnotGetFormFieldAlternateName(formHandlePtr, annotPtr) ?: ""
+    fun annotGetOptionCount(formHandlePtr: Long, annotPtr: Long) = nativeAnnotGetOptionCount(formHandlePtr, annotPtr)
+    fun annotGetOptionLabel(formHandlePtr: Long, annotPtr: Long, index: Int) = nativeAnnotGetOptionLabel(formHandlePtr, annotPtr, index) ?: ""
+    fun annotIsOptionSelected(formHandlePtr: Long, annotPtr: Long, index: Int) = nativeAnnotIsOptionSelected(formHandlePtr, annotPtr, index)
+    fun annotIsChecked(formHandlePtr: Long, annotPtr: Long) = nativeAnnotIsChecked(formHandlePtr, annotPtr)
+    fun annotGetFocusableSubtypesCount(formHandlePtr: Long): Int = nativeAnnotGetFocusableSubtypesCount(formHandlePtr)
+    fun annotGetFocusableSubtypes(formHandlePtr: Long): IntArray? {
+        val count = nativeAnnotGetFocusableSubtypesCount(formHandlePtr)
         if (count <= 0) return null
         val subtypes = IntArray(count)
-        return if (nativeAnnotGetFocusableSubtypes(annotPtr, subtypes)) subtypes else null
+        return if (nativeAnnotGetFocusableSubtypes(formHandlePtr, subtypes)) subtypes else null
     }
-    fun annotSetFocusableSubtypes(annotPtr: Long, subtypes: IntArray) = nativeAnnotSetFocusableSubtypes(annotPtr, subtypes)
-    fun annotGetLinkedAnnot(annotPtr: Long, subtype: Int) = nativeAnnotGetLinkedAnnot(annotPtr, subtype)
+    fun annotSetFocusableSubtypes(formHandlePtr: Long, subtypes: IntArray) = nativeAnnotSetFocusableSubtypes(formHandlePtr, subtypes)
+    fun annotGetLinkedAnnot(annotPtr: Long, key: String) = nativeAnnotGetLinkedAnnot(annotPtr, key)
     fun annotGetLine(annotPtr: Long): DoubleArray? {
         val line = DoubleArray(4)
         return if (nativeAnnotGetLine(annotPtr, line)) line else null
@@ -820,13 +820,13 @@ class PdfiumCore {
     fun annotRemoveObject(annotPtr: Long, index: Int) = nativeAnnotRemoveObject(annotPtr, index)
     fun annotUpdateObject(annotPtr: Long, objPtr: Long) = nativeAnnotUpdateObject(annotPtr, objPtr)
     fun annotGetAP(annotPtr: Long, mode: Int) = nativeAnnotGetAP(annotPtr, mode)
-    fun annotSetAP(annotPtr: Long, mode: Int, value: String) = nativeAnnotSetAP(annotPtr, mode, value)
+    fun annotSetAP(annotPtr: Long, mode: Int, value: String): Boolean = nativeAnnotSetAP(annotPtr, mode, value)
     fun annotGetFileAttachment(annotPtr: Long) = nativeAnnotGetFileAttachment(annotPtr)
-    fun annotAddFileAttachment(annotPtr: Long, name: String) = nativeAnnotAddFileAttachment(annotPtr, name)
-    fun annotGetFormFieldAtPoint(docPtr: Long, pagePtr: Long, x: Double, y: Double) = nativeAnnotGetFormFieldAtPoint(docPtr, pagePtr, x, y)
-    fun annotGetFormFieldFlags(annotPtr: Long) = nativeAnnotGetFormFieldFlags(annotPtr)
-    fun annotSetFormFieldFlags(annotPtr: Long, flags: Int) = nativeAnnotSetFormFieldFlags(annotPtr, flags)
-    fun annotGetFormAdditionalActionJavaScript(annotPtr: Long, eventType: Int) = nativeAnnotGetFormAdditionalActionJavaScript(annotPtr, eventType) ?: ""
+    fun annotAddFileAttachment(annotPtr: Long, name: String): Long = nativeAnnotAddFileAttachment(annotPtr, name)
+    fun annotGetFormFieldAtPoint(formHandlePtr: Long, pagePtr: Long, x: Double, y: Double) = nativeAnnotGetFormFieldAtPoint(formHandlePtr, pagePtr, x, y)
+    fun annotGetFormFieldFlags(formHandlePtr: Long, annotPtr: Long) = nativeAnnotGetFormFieldFlags(formHandlePtr, annotPtr)
+    fun annotSetFormFieldFlags(formHandlePtr: Long, annotPtr: Long, flags: Int) = nativeAnnotSetFormFieldFlags(formHandlePtr, annotPtr, flags)
+    fun annotGetFormAdditionalActionJavaScript(formHandlePtr: Long, annotPtr: Long, eventType: Int) = nativeAnnotGetFormAdditionalActionJavaScript(formHandlePtr, annotPtr, eventType) ?: ""
     fun annotIsSupportedSubtype(subtype: Int) = nativeAnnotIsSupportedSubtype(subtype)
     fun annotIsObjectSupportedSubtype(subtype: Int) = nativeAnnotIsObjectSupportedSubtype(subtype)
 
@@ -900,7 +900,7 @@ class PdfiumCore {
     private external fun nativePageObjSetLineCap(pageObjPtr: Long, lineCap: Int): Boolean
     private external fun nativePageObjGetLineJoin(pageObjPtr: Long): Int
     private external fun nativePageObjSetLineJoin(pageObjPtr: Long, lineJoin: Int): Boolean
-    private external fun nativePageObjGetStrokeWidth(pageObjPtr: Long): Float
+    private external fun nativePageObjGetStrokeWidth(pageObjPtr: Long): Double
     private external fun nativePageObjGetDashPhase(pageObjPtr: Long, phase: FloatArray): Boolean
     private external fun nativePageObjSetDashPhase(pageObjPtr: Long, phase: Float): Boolean
     private external fun nativePageObjGetDashCount(pageObjPtr: Long): Int
@@ -919,7 +919,7 @@ class PdfiumCore {
     private external fun nativePathGetDrawMode(pathObjPtr: Long): Int
     private external fun nativeTextObjGetFont(textObjPtr: Long): Long
     private external fun nativeTextObjGetFontSize(textObjPtr: Long): Double
-    private external fun nativeTextObjGetText(docPtr: Long, pagePtr: Long, textObjPtr: Long): String?
+    private external fun nativeTextObjGetText(textPagePtr: Long, textObjPtr: Long): String?
     private external fun nativeTextObjGetTextRenderMode(textObjPtr: Long): Int
     private external fun nativeTextObjSetTextRenderMode(textObjPtr: Long, renderMode: Int): Boolean
     private external fun nativeImageObjSetMatrix(imageObjPtr: Long, a: Float, b: Float, c: Float, d: Float, e: Float, f: Float): Boolean
@@ -929,11 +929,11 @@ class PdfiumCore {
     private external fun nativeImageObjGetImageDataDecoded(imageObjPtr: Long): ByteArray?
     private external fun nativeImageObjGetImageDataRaw(imageObjPtr: Long): ByteArray?
     private external fun nativeImageObjGetBitmap(imageObjPtr: Long): Long
-    private external fun nativeImageObjSetBitmap(imageObjPtr: Long, width: Int, height: Int, stride: Int, pixels: IntArray): Boolean
+    private external fun nativeImageObjSetBitmap(imageObjPtr: Long, pagePtr: Long, width: Int, height: Int, stride: Int, pixels: IntArray): Boolean
     private external fun nativeImageObjGetRenderedBitmap(docPtr: Long, pagePtr: Long, imageObjPtr: Long): Long
     private external fun nativeImageObjLoadJpegFile(imageObjPtr: Long, pagePtr: Long, jpegData: ByteArray): Boolean
     private external fun nativeImageObjLoadJpegFileInline(imageObjPtr: Long, pagePtr: Long, jpegData: ByteArray): Boolean
-    private external fun nativeImageObjGetIccProfileDataDecoded(imageObjPtr: Long): ByteArray?
+    private external fun nativeImageObjGetIccProfileDataDecoded(imageObjPtr: Long, pagePtr: Long): ByteArray?
     private external fun nativeImageObjGetImageMetadata(imageObjPtr: Long, pagePtr: Long, intValues: IntArray, floatValues: FloatArray): Boolean
 
     // Phase 9: Document Utilities
@@ -1050,7 +1050,7 @@ class PdfiumCore {
     fun pageObjSetLineCap(pageObjPtr: Long, lineCap: Int): Boolean = nativePageObjSetLineCap(pageObjPtr, lineCap)
     fun pageObjGetLineJoin(pageObjPtr: Long): Int = nativePageObjGetLineJoin(pageObjPtr)
     fun pageObjSetLineJoin(pageObjPtr: Long, lineJoin: Int): Boolean = nativePageObjSetLineJoin(pageObjPtr, lineJoin)
-    fun pageObjGetStrokeWidth(pageObjPtr: Long): Float = nativePageObjGetStrokeWidth(pageObjPtr)
+    fun pageObjGetStrokeWidth(pageObjPtr: Long): Double = nativePageObjGetStrokeWidth(pageObjPtr)
     fun pageObjGetDashPhase(pageObjPtr: Long, phase: FloatArray): Boolean = nativePageObjGetDashPhase(pageObjPtr, phase)
     fun pageObjSetDashPhase(pageObjPtr: Long, phase: Float): Boolean = nativePageObjSetDashPhase(pageObjPtr, phase)
     fun pageObjGetDashCount(pageObjPtr: Long): Int = nativePageObjGetDashCount(pageObjPtr)
@@ -1069,7 +1069,7 @@ class PdfiumCore {
     fun pathGetDrawMode(pathObjPtr: Long): Int = nativePathGetDrawMode(pathObjPtr)
     fun textObjGetFont(textObjPtr: Long): Long = nativeTextObjGetFont(textObjPtr)
     fun textObjGetFontSize(textObjPtr: Long): Double = nativeTextObjGetFontSize(textObjPtr)
-    fun textObjGetText(docPtr: Long, pagePtr: Long, textObjPtr: Long): String? = nativeTextObjGetText(docPtr, pagePtr, textObjPtr)
+    fun textObjGetText(textPagePtr: Long, textObjPtr: Long): String? = nativeTextObjGetText(textPagePtr, textObjPtr)
     fun textObjGetTextRenderMode(textObjPtr: Long): Int = nativeTextObjGetTextRenderMode(textObjPtr)
     fun textObjSetTextRenderMode(textObjPtr: Long, renderMode: Int): Boolean = nativeTextObjSetTextRenderMode(textObjPtr, renderMode)
     fun imageObjSetMatrix(imageObjPtr: Long, a: Float, b: Float, c: Float, d: Float, e: Float, f: Float): Boolean = nativeImageObjSetMatrix(imageObjPtr, a, b, c, d, e, f)
@@ -1082,9 +1082,9 @@ class PdfiumCore {
     fun imageObjGetImageDataDecoded(imageObjPtr: Long): ByteArray? = nativeImageObjGetImageDataDecoded(imageObjPtr)
     fun imageObjGetImageDataRaw(imageObjPtr: Long): ByteArray? = nativeImageObjGetImageDataRaw(imageObjPtr)
     fun imageObjGetBitmap(imageObjPtr: Long): Long = nativeImageObjGetBitmap(imageObjPtr)
-    fun imageObjSetBitmap(imageObjPtr: Long, width: Int, height: Int, stride: Int, pixels: IntArray): Boolean = nativeImageObjSetBitmap(imageObjPtr, width, height, stride, pixels)
+    fun imageObjSetBitmap(imageObjPtr: Long, pagePtr: Long, width: Int, height: Int, stride: Int, pixels: IntArray): Boolean = nativeImageObjSetBitmap(imageObjPtr, pagePtr, width, height, stride, pixels)
     fun imageObjGetRenderedBitmap(docPtr: Long, pagePtr: Long, imageObjPtr: Long): Long = nativeImageObjGetRenderedBitmap(docPtr, pagePtr, imageObjPtr)
-    fun imageObjGetIccProfileDataDecoded(imageObjPtr: Long): ByteArray? = nativeImageObjGetIccProfileDataDecoded(imageObjPtr)
+    fun imageObjGetIccProfileDataDecoded(imageObjPtr: Long, pagePtr: Long): ByteArray? = nativeImageObjGetIccProfileDataDecoded(imageObjPtr, pagePtr)
     fun imageObjLoadJpegFile(imageObjPtr: Long, pagePtr: Long, jpegData: ByteArray): Boolean =
         nativeImageObjLoadJpegFile(imageObjPtr, pagePtr, jpegData)
     fun imageObjLoadJpegFileInline(imageObjPtr: Long, pagePtr: Long, jpegData: ByteArray): Boolean =
