@@ -2,25 +2,16 @@
 
 ## Summary
 - Total functions: ~57
-- Already bound: ~50 ✅
-- Missing: ~7 (Skia + BStr + niche platform functions)
-
-## Missing Kotlin Bindings
-
-- [ ] FPDF_LoadMemDocument64 (64-bit size variant)
-- [ ] FPDF_LoadDocumentFromSeekable
-- [ ] FPDF_RenderPageSkia (Skia-specific, not useful on Android)
-- [ ] FPDF_BStr_Init
-- [ ] FPDF_BStr_Set
-- [ ] FPDF_BStr_Clear
-- [ ] FPDF_GetArrayBufferAllocatorSharedInstance
+- Already bound: ~56 ✅
+- Missing: ~1 (Skia only)
 
 ## Recently Added
-
+- [x] FPDF_LoadMemDocument64 (64-bit size variant)
+- [x] FPDF_LoadCustomDocument (FPDF_FILEACCESS callback pattern)
 - [x] FPDF_SetSandBoxPolicy
 - [x] FPDF_SetPrintMode
 - [x] FPDF_GetFileVersion
-- [x] FPDF_GetPageWidthF (as float*1000000 int)
+- [x] FPDF_GetPageWidthF
 - [x] FPDF_GetPageHeightF
 - [x] FPDF_GetPageBoundingBoxF
 - [x] FPDFBitmap_GetFormat
@@ -32,9 +23,14 @@
 - [x] FPDF_GetXFAPacketCount
 - [x] FPDF_GetXFAPacketName
 - [x] FPDF_GetXFAPacketContent
+- [x] FPDF_BStr_Init
+- [x] FPDF_BStr_Set
+- [x] FPDF_BStr_Clear
+
+## Remaining (Will Not Bind)
+- [ ] FPDF_RenderPageSkia — Skia-specific, Android uses Agg renderer
 
 ## Already Bound (verified)
-
 - [x] FPDF_InitLibrary
 - [x] FPDF_DestroyLibrary
 - [x] FPDF_GetLastError

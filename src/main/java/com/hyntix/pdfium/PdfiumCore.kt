@@ -35,6 +35,70 @@ class PdfiumCore {
         const val FPDF_REMOVE_SECURITY = 4
         const val FPDF_REMOVE_SECURITY_DEPRECATED = 3
         const val FPDF_SUBSET_NEW_FONTS = 8
+
+        // Data Availability constants from fpdf_dataavail.h
+        const val PDF_LINEARIZATION_UNKNOWN = -1
+        const val PDF_NOT_LINEARIZED = 0
+        const val PDF_LINEARIZED = 1
+        const val PDF_DATA_ERROR = -1
+        const val PDF_DATA_NOTAVAIL = 0
+        const val PDF_DATA_AVAIL = 1
+        const val PDF_FORM_ERROR = -1
+        const val PDF_FORM_NOTAVAIL = 0
+        const val PDF_FORM_AVAIL = 1
+        const val PDF_FORM_NOTEXIST = 2
+
+        // fpdf_sysfontinfo.h charset constants
+        const val FXFONT_ANSI_CHARSET = 0
+        const val FXFONT_DEFAULT_CHARSET = 1
+        const val FXFONT_SYMBOL_CHARSET = 2
+        const val FXFONT_SHIFTJIS_CHARSET = 128
+        const val FXFONT_HANGEUL_CHARSET = 129
+        const val FXFONT_GB2312_CHARSET = 134
+        const val FXFONT_CHINESEBIG5_CHARSET = 136
+
+        // Unsupported object types from fpdf_ext.h
+        const val FPDF_UNSP_DOC_XFAFORM = 1
+        const val FPDF_UNSP_DOC_PORTABLECOLLECTION = 2
+        const val FPDF_UNSP_DOC_ATTACHMENT = 3
+        const val FPDF_UNSP_DOC_SECURITY = 4
+        const val FPDF_UNSP_DOC_SHAREDREVIEW = 5
+        const val FPDF_UNSP_DOC_SHAREDFORM_ACROBAT = 6
+        const val FPDF_UNSP_DOC_SHAREDFORM_FILESYSTEM = 7
+        const val FPDF_UNSP_DOC_SHAREDFORM_EMAIL = 8
+        const val FPDF_UNSP_ANNOT_3DANNOT = 11
+        const val FPDF_UNSP_ANNOT_MOVIE = 12
+        const val FPDF_UNSP_ANNOT_SOUND = 13
+        const val FPDF_UNSP_ANNOT_SCREEN_MEDIA = 14
+        const val FPDF_UNSP_ANNOT_SCREEN_RICHMEDIA = 15
+        const val FPDF_UNSP_ANNOT_ATTACHMENT = 16
+        const val FPDF_UNSP_ANNOT_SIG = 17
+
+        // Font weight constants
+        const val FXFONT_FW_NORMAL = 400
+        const val FXFONT_FW_BOLD = 700
+
+        // Colorspace constants from fpdf_edit.h
+        const val FPDF_COLORSPACE_UNKNOWN = 0
+        const val FPDF_COLORSPACE_DEVICEGRAY = 1
+        const val FPDF_COLORSPACE_DEVICERGB = 2
+        const val FPDF_COLORSPACE_DEVICECMYK = 3
+        const val FPDF_COLORSPACE_CALGRAY = 4
+        const val FPDF_COLORSPACE_CALRGB = 5
+        const val FPDF_COLORSPACE_LAB = 6
+        const val FPDF_COLORSPACE_ICCBASED = 7
+        const val FPDF_COLORSPACE_SEPARATION = 8
+        const val FPDF_COLORSPACE_DEVICEN = 9
+        const val FPDF_COLORSPACE_INDEXED = 10
+        const val FPDF_COLORSPACE_PATTERN = 11
+
+        // Callback for unsupported objects (fpdf_ext.h) — called from JNI
+        @JvmStatic var onUnsupportedObjectCallback: ((Int) -> Unit)? = null
+
+        @JvmStatic fun onUnsupportedObject(nType: Int) {
+            onUnsupportedObjectCallback?.invoke(nType)
+        }
+
     }
     
     private var isInitialized = false
@@ -115,6 +179,11 @@ class PdfiumCore {
      */
     fun openDocument(data: ByteArray, password: String? = null): PdfDocument? {
         val docPtr = nativeOpenMemDocument(data, password)
+        return if (docPtr != 0L) PdfDocument(this, docPtr) else null
+    }
+
+    fun openDocument64(data: ByteArray, password: String? = null): PdfDocument? {
+        val docPtr = nativeOpenMemDocument64(data, password)
         return if (docPtr != 0L) PdfDocument(this, docPtr) else null
     }
     
@@ -428,6 +497,7 @@ class PdfiumCore {
     private external fun nativeGetLastError(): Int
     private external fun nativeOpenDocument(fd: Int, password: String?): Long
     private external fun nativeOpenMemDocument(data: ByteArray, password: String?): Long
+    private external fun nativeOpenMemDocument64(data: ByteArray, password: String?): Long
     private external fun nativeOpenDocumentPath(path: String, password: String?): Long
     private external fun nativeCloseDocument(docPtr: Long)
     private external fun nativeGetPageCount(docPtr: Long): Int
@@ -720,7 +790,13 @@ class PdfiumCore {
     fun annotGetOptionLabel(annotPtr: Long, index: Int) = nativeAnnotGetOptionLabel(annotPtr, index) ?: ""
     fun annotIsOptionSelected(annotPtr: Long, index: Int) = nativeAnnotIsOptionSelected(annotPtr, index)
     fun annotIsChecked(annotPtr: Long) = nativeAnnotIsChecked(annotPtr)
-    fun annotGetFocusableSubtypesCount(annotPtr: Long) = nativeAnnotGetFocusableSubtypesCount(annotPtr)
+    fun annotGetFocusableSubtypesCount(annotPtr: Long): Int = nativeAnnotGetFocusableSubtypesCount(annotPtr)
+    fun annotGetFocusableSubtypes(annotPtr: Long): IntArray? {
+        val count = nativeAnnotGetFocusableSubtypesCount(annotPtr)
+        if (count <= 0) return null
+        val subtypes = IntArray(count)
+        return if (nativeAnnotGetFocusableSubtypes(annotPtr, subtypes)) subtypes else null
+    }
     fun annotSetFocusableSubtypes(annotPtr: Long, subtypes: IntArray) = nativeAnnotSetFocusableSubtypes(annotPtr, subtypes)
     fun annotGetLinkedAnnot(annotPtr: Long, subtype: Int) = nativeAnnotGetLinkedAnnot(annotPtr, subtype)
     fun annotGetLine(annotPtr: Long): DoubleArray? {
@@ -801,7 +877,6 @@ class PdfiumCore {
     private external fun nativePathSetDrawMode(pathObjPtr: Long, fillMode: Int, stroke: Boolean): Boolean
     private external fun nativePathSetStrokeWidth(pathObjPtr: Long, width: Float): Boolean
     private external fun nativeNewImageObj(docPtr: Long): Long
-    private external fun nativeImageObjSetBitmap(imageObjPtr: Long, bitmap: Any): Boolean
     private external fun nativeInsertObject(pagePtr: Long, pageObjPtr: Long): Boolean
     private external fun nativeRemoveObject(pagePtr: Long, pageObjPtr: Long): Boolean
     private external fun nativeSetObjectFillColor(pageObjPtr: Long, r: Int, g: Int, b: Int, a: Int)
@@ -856,10 +931,10 @@ class PdfiumCore {
     private external fun nativeImageObjGetBitmap(imageObjPtr: Long): Long
     private external fun nativeImageObjSetBitmap(imageObjPtr: Long, width: Int, height: Int, stride: Int, pixels: IntArray): Boolean
     private external fun nativeImageObjGetRenderedBitmap(docPtr: Long, pagePtr: Long, imageObjPtr: Long): Long
-    private external fun nativeImageObjLoadJpegFile(imageObjPtr: Long, fileAccess: Any): Boolean
-    private external fun nativeImageObjLoadJpegFileInline(imageObjPtr: Long, fileAccess: Any): Boolean
+    private external fun nativeImageObjLoadJpegFile(imageObjPtr: Long, pagePtr: Long, jpegData: ByteArray): Boolean
+    private external fun nativeImageObjLoadJpegFileInline(imageObjPtr: Long, pagePtr: Long, jpegData: ByteArray): Boolean
     private external fun nativeImageObjGetIccProfileDataDecoded(imageObjPtr: Long): ByteArray?
-    private external fun nativeImageObjGetImageMetadata(imageObjPtr: Long, metadata: IntArray): Boolean
+    private external fun nativeImageObjGetImageMetadata(imageObjPtr: Long, pagePtr: Long, intValues: IntArray, floatValues: FloatArray): Boolean
 
     // Phase 9: Document Utilities
     private external fun nativeImportPages(destDocPtr: Long, srcDocPtr: Long, pageRange: String?, insertIndex: Int): Boolean
@@ -905,6 +980,28 @@ class PdfiumCore {
     private external fun nativeGetJavaScriptActionName(jsActionPtr: Long): String?
     private external fun nativeGetJavaScriptActionScript(jsActionPtr: Long): String?
 
+    // Phase 12a: fpdf_ext.h
+    private external fun nativeSetUnSpObjProcessHandler(): Boolean
+
+    // Phase 12b: fpdf_dataavail.h
+    private external fun nativeCreateAvail(fileData: ByteArray): Long
+    private external fun nativeDestroyAvail(availPtr: Long)
+    private external fun nativeAvailGetDocument(availPtr: Long, password: String?): Long
+    private external fun nativeAvailGetFirstPageNum(docPtr: Long): Int
+    private external fun nativeAvailIsDocAvail(availPtr: Long): Int
+    private external fun nativeAvailIsPageAvail(availPtr: Long, pageIndex: Int): Int
+    private external fun nativeAvailIsFormAvail(availPtr: Long): Int
+
+    // Phase 12c: fpdf_sysfontinfo.h
+    private external fun nativeGetDefaultTTFMapCount(): Int
+    private external fun nativeGetDefaultTTFMapEntry(index: Int, outCharset: IntArray): String?
+    private external fun nativeAddInstalledFont(mapperPtr: Long, face: String, charset: Int)
+    private external fun nativeGetDefaultSystemFontInfo(): Long
+    private external fun nativeFreeDefaultSystemFontInfo(fontInfoPtr: Long)
+    private external fun nativeSetSystemFontInfo(fontInfoPtr: Long)
+
+    private external fun nativeLoadCustomDocument(data: ByteArray, password: String?): Long
+
     // Phase 12: WebLinks, Enums, etc.
     private external fun nativeLoadWebLinks(textPagePtr: Long): Long
     private external fun nativeCloseWebLinks(pageLinksPtr: Long)
@@ -930,7 +1027,6 @@ class PdfiumCore {
     fun pathSetStrokeWidth(pathObjPtr: Long, width: Float): Boolean = nativePathSetStrokeWidth(pathObjPtr, width)
     fun pathClose(pathObjPtr: Long): Boolean = nativePathClose(pathObjPtr)
     fun newImageObject(docPtr: Long): Long = nativeNewImageObj(docPtr)
-    fun imageObjSetBitmap(imageObjPtr: Long, bitmap: Any): Boolean = nativeImageObjSetBitmap(imageObjPtr, bitmap)
     fun insertObject(pagePtr: Long, pageObjPtr: Long): Boolean = nativeInsertObject(pagePtr, pageObjPtr)
     fun removeObject(pagePtr: Long, pageObjPtr: Long): Boolean = nativeRemoveObject(pagePtr, pageObjPtr)
     fun setObjectFillColor(pageObjPtr: Long, r: Int, g: Int, b: Int, a: Int) = nativeSetObjectFillColor(pageObjPtr, r, g, b, a)
@@ -989,6 +1085,71 @@ class PdfiumCore {
     fun imageObjSetBitmap(imageObjPtr: Long, width: Int, height: Int, stride: Int, pixels: IntArray): Boolean = nativeImageObjSetBitmap(imageObjPtr, width, height, stride, pixels)
     fun imageObjGetRenderedBitmap(docPtr: Long, pagePtr: Long, imageObjPtr: Long): Long = nativeImageObjGetRenderedBitmap(docPtr, pagePtr, imageObjPtr)
     fun imageObjGetIccProfileDataDecoded(imageObjPtr: Long): ByteArray? = nativeImageObjGetIccProfileDataDecoded(imageObjPtr)
+    fun imageObjLoadJpegFile(imageObjPtr: Long, pagePtr: Long, jpegData: ByteArray): Boolean =
+        nativeImageObjLoadJpegFile(imageObjPtr, pagePtr, jpegData)
+    fun imageObjLoadJpegFileInline(imageObjPtr: Long, pagePtr: Long, jpegData: ByteArray): Boolean =
+        nativeImageObjLoadJpegFileInline(imageObjPtr, pagePtr, jpegData)
+
+    data class ImageMetadata(
+        val width: Int, val height: Int,
+        val horizontalDpi: Float, val verticalDpi: Float,
+        val bitsPerPixel: Int, val colorspace: Int, val markedContentId: Int
+    )
+    fun imageObjGetImageMetadata(imageObjPtr: Long, pagePtr: Long): ImageMetadata? {
+        val intValues = IntArray(5)
+        val floatValues = FloatArray(2)
+        return if (nativeImageObjGetImageMetadata(imageObjPtr, pagePtr, intValues, floatValues)) {
+            ImageMetadata(
+                width = intValues[0], height = intValues[1],
+                horizontalDpi = floatValues[0], verticalDpi = floatValues[1],
+                bitsPerPixel = intValues[2], colorspace = intValues[3],
+                markedContentId = intValues[4]
+            )
+        } else null
+    }
+
+    // fpdf_ext.h
+    fun setUnSpObjProcessHandler(): Boolean = nativeSetUnSpObjProcessHandler()
+
+    // fpdf_dataavail.h
+    fun createAvail(fileData: ByteArray): Long = nativeCreateAvail(fileData)
+    fun destroyAvail(availPtr: Long) = nativeDestroyAvail(availPtr)
+    fun availGetDocument(availPtr: Long, password: String? = null): Long =
+        nativeAvailGetDocument(availPtr, password)
+    fun availGetFirstPageNum(docPtr: Long): Int = nativeAvailGetFirstPageNum(docPtr)
+    fun availIsDocAvail(availPtr: Long): Int = nativeAvailIsDocAvail(availPtr)
+    fun availIsPageAvail(availPtr: Long, pageIndex: Int): Int = nativeAvailIsPageAvail(availPtr, pageIndex)
+    fun availIsFormAvail(availPtr: Long): Int = nativeAvailIsFormAvail(availPtr)
+
+    // fpdf_sysfontinfo.h
+    fun getDefaultTTFMapCount(): Int = nativeGetDefaultTTFMapCount()
+    data class TTFMapEntry(val charset: Int, val fontName: String)
+    fun getDefaultTTFMapEntry(index: Int): TTFMapEntry? {
+        val charset = IntArray(1)
+        val fontName = nativeGetDefaultTTFMapEntry(index, charset)
+        return fontName?.let { TTFMapEntry(charset[0], it) }
+    }
+    fun getDefaultTTFMap(): List<TTFMapEntry> {
+        val count = nativeGetDefaultTTFMapCount()
+        val result = mutableListOf<TTFMapEntry>()
+        for (i in 0 until count) {
+            val entry = getDefaultTTFMapEntry(i) ?: continue
+            result.add(entry)
+        }
+        return result
+    }
+
+    fun addInstalledFont(mapperPtr: Long, face: String, charset: Int) =
+        nativeAddInstalledFont(mapperPtr, face, charset)
+    fun getDefaultSystemFontInfo(): Long = nativeGetDefaultSystemFontInfo()
+    fun freeDefaultSystemFontInfo(fontInfoPtr: Long) = nativeFreeDefaultSystemFontInfo(fontInfoPtr)
+    fun setSystemFontInfo(fontInfoPtr: Long) = nativeSetSystemFontInfo(fontInfoPtr)
+
+    // fpdfview.h — FPDF_LoadCustomDocument
+    fun loadCustomDocument(data: ByteArray, password: String? = null): PdfDocument? {
+        val docPtr = nativeLoadCustomDocument(data, password)
+        return if (docPtr != 0L) PdfDocument(this, docPtr) else null
+    }
 
     // Document Utilities
     fun importPages(destDocPtr: Long, srcDocPtr: Long, pageRange: String?, insertIndex: Int): Boolean = nativeImportPages(destDocPtr, srcDocPtr, pageRange, insertIndex)

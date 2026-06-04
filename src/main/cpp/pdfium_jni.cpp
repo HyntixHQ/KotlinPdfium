@@ -29,13 +29,78 @@
 #include <fpdf_dataavail.h>
 #include <fpdf_javascript.h>
 #include <fpdf_sysfontinfo.h>
+#include <fpdf_ext.h>
 
 #define LOG_TAG "KotlinPdfium"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
+static JavaVM* g_vm = nullptr;
 static int libraryReferenceCount = 0;
 static std::map<FPDF_DOCUMENT, char*> g_docBuffers;
+
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
+    g_vm = vm;
+    return JNI_VERSION_1_6;
+}
+
+// --- fpdf_ext.h callback infrastructure ---
+static void UnSpObjHandlerCallback(struct _UNSUPPORT_INFO* pThis, int nType) {
+    JNIEnv* env;
+    if (g_vm->GetEnv((void**)&env, JNI_VERSION_1_6) != JNI_OK) return;
+    jclass clazz = env->FindClass("com/hyntix/pdfium/PdfiumCore");
+    if (!clazz) return;
+    jmethodID method = env->GetStaticMethodID(clazz, "onUnsupportedObject", "(I)V");
+    if (method) env->CallStaticVoidMethod(clazz, method, nType);
+    env->DeleteLocalRef(clazz);
+}
+
+static UNSUPPORT_INFO g_unsupportInfo = {1, UnSpObjHandlerCallback};
+// ---
+
+// --- fpdf_dataavail.h callback infrastructure ---
+// Forward declarations of JNI callbacks for data avail
+static FPDF_BOOL IsDataAvailCallback(struct _FX_FILEAVAIL* pThis, size_t offset, size_t size);
+static int GetBlockCallback(void* param, unsigned long position, unsigned char* pBuf, unsigned long size);
+static void AddSegmentCallback(struct _FX_DOWNLOADHINTS* pThis, size_t offset, size_t size);
+
+// --- AvailData: wraps FX_FILEAVAIL + FPDF_FILEACCESS for FPDFAvail_Create ---
+struct AvailData {
+    unsigned char* fileData;
+    unsigned long fileLen;
+    FX_FILEAVAIL fileAvailStruct;
+    FPDF_FILEACCESS fileAccessStruct;
+};
+
+static std::map<FPDF_AVAIL, AvailData*> g_availDataMap;
+
+static FPDF_BOOL IsDataAvailCallback(struct _FX_FILEAVAIL* pThis, size_t offset, size_t size) {
+    return TRUE;
+}
+
+static int GetBlockCallback(void* param, unsigned long position, unsigned char* pBuf, unsigned long size) {
+    AvailData* data = (AvailData*) param;
+    if (!data || position + size > data->fileLen) return 0;
+    memcpy(pBuf, data->fileData + position, size);
+    return 1;
+}
+
+static void AddSegmentCallback(struct _FX_DOWNLOADHINTS* pThis, size_t offset, size_t size) {
+}
+
+// Helper for synchronous FPDF_FILEACCESS callbacks (LoadJpegFile, etc.)
+struct SyncFileReadCtx {
+    unsigned char* data;
+    unsigned long len;
+};
+
+static int SyncFileReadBlock(void* param, unsigned long position, unsigned char* pBuf, unsigned long size) {
+    SyncFileReadCtx* ctx = (SyncFileReadCtx*) param;
+    if (!ctx || position + size > ctx->len) return 0;
+    memcpy(pBuf, ctx->data + position, size);
+    return 1;
+}
+// ---
 
 extern "C" {
 
@@ -63,6 +128,12 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeDestroyLibrary(JNIEnv *env, jobject thiz
         FPDF_DestroyLibrary();
         LOGI("PDFium library destroyed");
     }
+}
+
+// --- fpdf_ext.h ---
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeSetUnSpObjProcessHandler(JNIEnv *env, jobject thiz) {
+    return FSDK_SetUnSpObjProcessHandler(&g_unsupportInfo) ? JNI_TRUE : JNI_FALSE;
 }
 
 // --- fpdfview.h Additional Bindings ---
@@ -341,6 +412,82 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeOpenMemDocument(JNIEnv *env, jobject thi
     LOGI("Document opened from memory, pages: %d", FPDF_GetPageCount(doc));
     return (jlong) doc;
 }
+
+// --- FPDF_LoadMemDocument64 (64-bit size) ---
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeOpenMemDocument64(JNIEnv *env, jobject thiz,
+                                                          jbyteArray data, jstring password) {
+    const char *cPassword = nullptr;
+    if (password != nullptr) {
+        cPassword = env->GetStringUTFChars(password, nullptr);
+    }
+
+    jsize length = env->GetArrayLength(data);
+    jbyte *buffer = env->GetByteArrayElements(data, nullptr);
+
+    char* docBuffer = new char[(size_t)length];
+    memcpy(docBuffer, buffer, (size_t)length);
+
+    FPDF_DOCUMENT doc = FPDF_LoadMemDocument64(docBuffer, (size_t)length, cPassword);
+
+    env->ReleaseByteArrayElements(data, buffer, 0);
+    if (password != nullptr) {
+        env->ReleaseStringUTFChars(password, cPassword);
+    }
+
+    if (!doc) {
+        delete[] docBuffer;
+        LOGE("Failed to load document from memory (64), error: %lu", FPDF_GetLastError());
+        return 0;
+    }
+
+    g_docBuffers[doc] = docBuffer;
+    LOGI("Document opened from memory (64-bit), pages: %d", FPDF_GetPageCount(doc));
+    return (jlong) doc;
+}
+// ---
+
+// --- FPDF_LoadCustomDocument (FPDF_FILEACCESS callback) ---
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeLoadCustomDocument(JNIEnv *env, jobject thiz,
+                                                           jbyteArray data, jstring password) {
+    const char *cPassword = nullptr;
+    if (password != nullptr) {
+        cPassword = env->GetStringUTFChars(password, nullptr);
+    }
+
+    jsize length = env->GetArrayLength(data);
+    jbyte *elements = env->GetByteArrayElements(data, nullptr);
+
+    SyncFileReadCtx* ctx = new SyncFileReadCtx();
+    ctx->data = new unsigned char[(size_t)length];
+    ctx->len = (unsigned long)length;
+    memcpy(ctx->data, elements, (size_t)length);
+
+    FPDF_FILEACCESS fileAccess;
+    fileAccess.m_FileLen = (unsigned long)length;
+    fileAccess.m_GetBlock = SyncFileReadBlock;
+    fileAccess.m_Param = ctx;
+
+    FPDF_DOCUMENT doc = FPDF_LoadCustomDocument(&fileAccess, cPassword);
+
+    env->ReleaseByteArrayElements(data, elements, JNI_ABORT);
+    if (password != nullptr) {
+        env->ReleaseStringUTFChars(password, cPassword);
+    }
+
+    if (!doc) {
+        delete[] ctx->data;
+        delete ctx;
+        LOGE("Failed to load custom document, error: %lu", FPDF_GetLastError());
+        return 0;
+    }
+
+    g_docBuffers[doc] = (char*)ctx->data;
+    LOGI("Custom document loaded from memory, pages: %d", FPDF_GetPageCount(doc));
+    return (jlong) doc;
+}
+// ---
 
 /**
  * Open document from file path
@@ -1554,15 +1701,6 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeNewImageObj(JNIEnv *env, jobject thiz,
     FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
     if (!doc) return 0;
     return (jlong) FPDFPageObj_NewImageObj(doc);
-}
-
-JNIEXPORT jboolean JNICALL
-Java_com_hyntix_pdfium_PdfiumCore_nativeImageObjSetBitmap(JNIEnv *env, jobject thiz,
-                                                          jlong imageObjPtr, jobject bitmap) {
-    // In a real implementation we would convert Android Bitmap to FPDF_BITMAP or feed raw data
-    // This is complex because we need to keep the bitmap data alive or copy it.
-    // Simplifying: LoadJpegFile is easier for now as per features.md checklist
-    return JNI_FALSE; 
 }
 
 /**
@@ -2814,12 +2952,12 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeLinkCountQuadPoints(JNIEnv *env, jobject
     return FPDFLink_CountQuadPoints(link);
 }
 
-JNIEXPORT jboolean JNICALL
+JNIEXPORT jlong JNICALL
 Java_com_hyntix_pdfium_PdfiumCore_nativeDestGetView(JNIEnv *env, jobject thiz,
-                                                    jlong destPtr, jlongArray numParams,
-                                                    jfloatArray params) {
+                                                     jlong destPtr, jlongArray numParams,
+                                                     jfloatArray params) {
     FPDF_DEST dest = (FPDF_DEST) destPtr;
-    if (!dest) return JNI_FALSE;
+    if (!dest) return 0;
     unsigned long numParamsVal = 0;
     float paramsBuf[4] = {0};
     unsigned long result = FPDFDest_GetView(dest, &numParamsVal, paramsBuf);
@@ -2829,7 +2967,7 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeDestGetView(JNIEnv *env, jobject thiz,
     jfloat *paramBody = env->GetFloatArrayElements(params, nullptr);
     for (int i = 0; i < 4 && i < numParamsVal; i++) paramBody[i] = paramsBuf[i];
     env->ReleaseFloatArrayElements(params, paramBody, 0);
-    return (jint) result;
+    return (jlong) result;
 }
 
 JNIEXPORT jboolean JNICALL
@@ -3474,14 +3612,147 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeCloseFont(JNIEnv *env, jobject thiz, jlo
     if (font) FPDFFont_Close(font);
 }
 
-// --- Data Availability ---
+// --- Data Availability (fpdf_dataavail.h) ---
 JNIEXPORT jboolean JNICALL
 Java_com_hyntix_pdfium_PdfiumCore_nativeIsLinearized(JNIEnv *env, jobject thiz, jlong availPtr) {
     FPDF_AVAIL avail = (FPDF_AVAIL) availPtr;
     if (!avail) return JNI_FALSE;
-    // PDF_LINEARIZED is 1 in fpdf_dataavail.h (PDF_LINEARIZED)
     return FPDFAvail_IsLinearized(avail) == 1 ? JNI_TRUE : JNI_FALSE;
 }
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeCreateAvail(JNIEnv *env, jobject thiz, jbyteArray fileData) {
+    if (!fileData) return 0;
+    jsize len = env->GetArrayLength(fileData);
+    if (len == 0) return 0;
+    jbyte* elements = env->GetByteArrayElements(fileData, nullptr);
+
+    AvailData* data = new AvailData();
+    data->fileLen = (unsigned long) len;
+    data->fileData = new unsigned char[len];
+    memcpy(data->fileData, elements, len);
+
+    data->fileAvailStruct.version = 1;
+    data->fileAvailStruct.IsDataAvail = IsDataAvailCallback;
+
+    data->fileAccessStruct.m_FileLen = data->fileLen;
+    data->fileAccessStruct.m_GetBlock = GetBlockCallback;
+    data->fileAccessStruct.m_Param = data;
+
+    env->ReleaseByteArrayElements(fileData, elements, JNI_ABORT);
+
+    FPDF_AVAIL avail = FPDFAvail_Create(&data->fileAvailStruct, &data->fileAccessStruct);
+    if (!avail) {
+        delete[] data->fileData;
+        delete data;
+        return 0;
+    }
+    g_availDataMap[avail] = data;
+    return (jlong) avail;
+}
+
+JNIEXPORT void JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeDestroyAvail(JNIEnv *env, jobject thiz, jlong availPtr) {
+    FPDF_AVAIL avail = (FPDF_AVAIL) availPtr;
+    if (!avail) return;
+    auto it = g_availDataMap.find(avail);
+    if (it != g_availDataMap.end()) {
+        delete[] it->second->fileData;
+        delete it->second;
+        g_availDataMap.erase(it);
+    }
+    FPDFAvail_Destroy(avail);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAvailGetDocument(JNIEnv *env, jobject thiz,
+                                                         jlong availPtr, jstring password) {
+    FPDF_AVAIL avail = (FPDF_AVAIL) availPtr;
+    if (!avail) return 0;
+    const char* pwd = password ? env->GetStringUTFChars(password, nullptr) : nullptr;
+    FPDF_DOCUMENT doc = FPDFAvail_GetDocument(avail, (FPDF_BYTESTRING) pwd);
+    if (pwd) env->ReleaseStringUTFChars(password, pwd);
+    return (jlong) doc;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAvailGetFirstPageNum(JNIEnv *env, jobject thiz,
+                                                             jlong docPtr) {
+    FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
+    if (!doc) return 0;
+    return (jint) FPDFAvail_GetFirstPageNum(doc);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAvailIsDocAvail(JNIEnv *env, jobject thiz,
+                                                        jlong availPtr) {
+    FPDF_AVAIL avail = (FPDF_AVAIL) availPtr;
+    if (!avail) return -1;
+    return (jint) FPDFAvail_IsDocAvail(avail, nullptr);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAvailIsPageAvail(JNIEnv *env, jobject thiz,
+                                                         jlong availPtr, jint pageIndex) {
+    FPDF_AVAIL avail = (FPDF_AVAIL) availPtr;
+    if (!avail) return -1;
+    return (jint) FPDFAvail_IsPageAvail(avail, pageIndex, nullptr);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAvailIsFormAvail(JNIEnv *env, jobject thiz,
+                                                         jlong availPtr) {
+    FPDF_AVAIL avail = (FPDF_AVAIL) availPtr;
+    if (!avail) return -1;
+    return (jint) FPDFAvail_IsFormAvail(avail, nullptr);
+}
+
+// --- fpdf_sysfontinfo.h ---
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetDefaultTTFMapCount(JNIEnv *env, jobject thiz) {
+    return (jint) FPDF_GetDefaultTTFMapCount();
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetDefaultTTFMapEntry(JNIEnv *env, jobject thiz,
+                                                               jint index, jintArray outCharset) {
+    const FPDF_CharsetFontMap* entry = FPDF_GetDefaultTTFMapEntry((size_t) index);
+    if (!entry || entry->charset == -1) return nullptr;
+    if (outCharset) {
+        jint charset = entry->charset;
+        env->SetIntArrayRegion(outCharset, 0, 1, &charset);
+    }
+    return entry->fontname ? env->NewStringUTF(entry->fontname) : nullptr;
+}
+
+// --- fpdf_sysfontinfo.h remaining functions ---
+JNIEXPORT void JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAddInstalledFont(JNIEnv *env, jobject thiz,
+                                                         jlong mapperPtr, jstring face,
+                                                         jint charset) {
+    void* mapper = (void*) mapperPtr;
+    const char* cFace = env->GetStringUTFChars(face, nullptr);
+    FPDF_AddInstalledFont(mapper, cFace, charset);
+    env->ReleaseStringUTFChars(face, cFace);
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetDefaultSystemFontInfo(JNIEnv *env, jobject thiz) {
+    return (jlong) FPDF_GetDefaultSystemFontInfo();
+}
+
+JNIEXPORT void JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeFreeDefaultSystemFontInfo(JNIEnv *env, jobject thiz,
+                                                                   jlong fontInfoPtr) {
+    FPDF_FreeDefaultSystemFontInfo((FPDF_SYSFONTINFO*) fontInfoPtr);
+}
+
+JNIEXPORT void JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeSetSystemFontInfo(JNIEnv *env, jobject thiz,
+                                                           jlong fontInfoPtr) {
+    FPDF_SetSystemFontInfo((FPDF_SYSFONTINFO*) fontInfoPtr);
+}
+// ---
 
 /**
  * Get Link Handle from Annotation
@@ -4096,8 +4367,9 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetFocusableSubtypes(JNIEnv *env, j
         delete[] buffer;
         return JNI_FALSE;
     }
-    jintArray result = env->NewIntArray(count);
-    env->SetIntArrayRegion(result, 0, count, buffer);
+    if (subtypes && env->GetArrayLength(subtypes) >= count) {
+        env->SetIntArrayRegion(subtypes, 0, count, buffer);
+    }
     delete[] buffer;
     return JNI_TRUE;
 }
@@ -4832,16 +5104,46 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeImageObjGetRenderedBitmap(JNIEnv *env, j
 
 JNIEXPORT jboolean JNICALL
 Java_com_hyntix_pdfium_PdfiumCore_nativeImageObjLoadJpegFile(JNIEnv *env, jobject thiz,
-                                                            jlong imageObjPtr, jobject fileAccess) {
-    // Requires FPDF_FILEACCESS - skip for now
-    return JNI_FALSE;
+                                                             jlong imageObjPtr, jlong pagePtr,
+                                                             jbyteArray jpegData) {
+    FPDF_PAGEOBJECT imageObj = (FPDF_PAGEOBJECT) imageObjPtr;
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!imageObj || !jpegData) return JNI_FALSE;
+
+    jsize len = env->GetArrayLength(jpegData);
+    jbyte* elements = env->GetByteArrayElements(jpegData, nullptr);
+
+    SyncFileReadCtx ctx = { (unsigned char*) elements, (unsigned long) len };
+    FPDF_FILEACCESS fileAccess;
+    fileAccess.m_FileLen = (unsigned long) len;
+    fileAccess.m_GetBlock = SyncFileReadBlock;
+    fileAccess.m_Param = &ctx;
+
+    FPDF_BOOL result = FPDFImageObj_LoadJpegFile(imageObj, page, &fileAccess);
+    env->ReleaseByteArrayElements(jpegData, elements, JNI_ABORT);
+    return result ? JNI_TRUE : JNI_FALSE;
 }
 
 JNIEXPORT jboolean JNICALL
 Java_com_hyntix_pdfium_PdfiumCore_nativeImageObjLoadJpegFileInline(JNIEnv *env, jobject thiz,
-                                                                   jlong imageObjPtr, jobject fileAccess) {
-    // Requires FPDF_FILEACCESS - skip for now
-    return JNI_FALSE;
+                                                                    jlong imageObjPtr, jlong pagePtr,
+                                                                    jbyteArray jpegData) {
+    FPDF_PAGEOBJECT imageObj = (FPDF_PAGEOBJECT) imageObjPtr;
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!imageObj || !jpegData) return JNI_FALSE;
+
+    jsize len = env->GetArrayLength(jpegData);
+    jbyte* elements = env->GetByteArrayElements(jpegData, nullptr);
+
+    SyncFileReadCtx ctx = { (unsigned char*) elements, (unsigned long) len };
+    FPDF_FILEACCESS fileAccess;
+    fileAccess.m_FileLen = (unsigned long) len;
+    fileAccess.m_GetBlock = SyncFileReadBlock;
+    fileAccess.m_Param = &ctx;
+
+    FPDF_BOOL result = FPDFImageObj_LoadJpegFileInline(imageObj, page, &fileAccess);
+    env->ReleaseByteArrayElements(jpegData, elements, JNI_ABORT);
+    return result ? JNI_TRUE : JNI_FALSE;
 }
 
 JNIEXPORT jbyteArray JNICALL
@@ -4861,12 +5163,30 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeImageObjGetIccProfileDataDecoded(JNIEnv 
 
 JNIEXPORT jboolean JNICALL
 Java_com_hyntix_pdfium_PdfiumCore_nativeImageObjGetImageMetadata(JNIEnv *env, jobject thiz,
-                                                                jlong imageObjPtr, jintArray metadata) {
+                                                                 jlong imageObjPtr, jlong pagePtr,
+                                                                 jintArray intValues, jfloatArray floatValues) {
     FPDF_PAGEOBJECT imageObj = (FPDF_PAGEOBJECT) imageObjPtr;
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
     if (!imageObj) return JNI_FALSE;
-    // FPDF_IMAGEMETADATA contains flags, width, height, horz_size, vert_size, bits_per_component, colorspace
-    // Simplified: return basic info
-    return JNI_FALSE;
+
+    FPDF_IMAGEOBJ_METADATA meta;
+    if (!FPDFImageObj_GetImageMetadata(imageObj, page, &meta)) return JNI_FALSE;
+
+    if (intValues && env->GetArrayLength(intValues) >= 5) {
+        jint ints[5] = {
+            (jint) meta.width,
+            (jint) meta.height,
+            (jint) meta.bits_per_pixel,
+            (jint) meta.colorspace,
+            (jint) meta.marked_content_id
+        };
+        env->SetIntArrayRegion(intValues, 0, 5, ints);
+    }
+    if (floatValues && env->GetArrayLength(floatValues) >= 2) {
+        jfloat floats[2] = { meta.horizontal_dpi, meta.vertical_dpi };
+        env->SetFloatArrayRegion(floatValues, 0, 2, floats);
+    }
+    return JNI_TRUE;
 }
 
 } // extern "C"

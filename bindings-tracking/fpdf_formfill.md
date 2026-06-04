@@ -63,5 +63,6 @@
 - [x] FORM_ForceToKillFocus
 - [x] FPDFDOC_InitFormFillEnvironment
 - [x] FPDFDOC_ExitFormFillEnvironment
-- [x] FPDF_FFLDraw
+- [x] FPDF_FFLDraw (Agg version)
+- [ ] FPDF_FFLDrawSkia (Skia-only, not available in this build)
 - [x] FPDF_GetFormType

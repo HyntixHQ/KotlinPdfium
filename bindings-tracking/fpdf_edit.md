@@ -2,12 +2,17 @@
 
 ## Summary
 - Total functions: 67
-- Already bound: 20
+- Already bound: 67 ✅
 - Missing: 0 ✅
 
 ## All Functions Complete ✅
 
-All 47 previously missing functions have been implemented in `pdfium_jni.cpp` and `PdfiumCore.kt`.
+All 67 functions from fpdf_edit.h are now bound. The 3 previously-stubbed ImageObj
+functions have been upgraded to real implementations:
+
+- [x] FPDFImageObj_GetImageMetadata — reads FPDF_IMAGEOBJ_METADATA struct fields
+- [x] FPDFImageObj_LoadJpegFile — uses FPDF_FILEACCESS with SyncFileReadBlock callback
+- [x] FPDFImageObj_LoadJpegFileInline — same as LoadJpegFile
 
 ### FPDFPageObj_ (30 added)
 - [x] FPDFPageObj_AddMark
@@ -57,11 +62,11 @@ All 47 previously missing functions have been implemented in `pdfium_jni.cpp` an
 - [x] FPDFImageObj_GetImageDataRaw
 - [x] FPDFImageObj_GetImageFilter
 - [x] FPDFImageObj_GetImageFilterCount
-- [x] FPDFImageObj_GetImageMetadata (stub)
+- [x] FPDFImageObj_GetImageMetadata
 - [x] FPDFImageObj_GetImagePixelSize
 - [x] FPDFImageObj_GetRenderedBitmap
-- [x] FPDFImageObj_LoadJpegFile (stub)
-- [x] FPDFImageObj_LoadJpegFileInline (stub)
+- [x] FPDFImageObj_LoadJpegFile
+- [x] FPDFImageObj_LoadJpegFileInline
 - [x] FPDFImageObj_SetBitmap
 - [x] FPDFImageObj_SetMatrix
 

@@ -2,18 +2,22 @@
 
 ## Summary
 - Total functions: 6
-- Already bound: 0
-- Missing: 6 (all require callback struct / complex pointer interfaces)
+- Already bound: 6 ✅
+- Missing: 0 ✅
 
-## Missing Kotlin Bindings (Complex — require FPDF_SYSFONTINFO callback struct)
+## All Functions Complete ✅
 
-- [ ] FPDF_GetDefaultTTFMap — returns pointer to static array
-- [ ] FPDF_GetDefaultTTFMapCount
-- [ ] FPDF_GetDefaultTTFMapEntry — returns pointer to struct
-- [ ] FPDF_AddInstalledFont — needs opaque mapper pointer
-- [ ] FPDF_SetSystemFontInfo — needs FPDF_SYSFONTINFO with function pointers
-- [ ] FPDF_GetDefaultSystemFontInfo — returns FPDF_SYSFONTINFO pointer
-- [ ] FPDF_FreeDefaultSystemFontInfo
+All 6 functions from fpdf_sysfontinfo.h are now bound:
+
+- [x] FPDF_GetDefaultTTFMapCount
+- [x] FPDF_GetDefaultTTFMapEntry
+- [x] FPDF_GetDefaultTTFMap (exposed via Kotlin using count + entry)
+- [x] FPDF_AddInstalledFont
+- [x] FPDF_GetDefaultSystemFontInfo (returns FPDF_SYSFONTINFO* as Long)
+- [x] FPDF_FreeDefaultSystemFontInfo
+- [x] FPDF_SetSystemFontInfo
 
 ## Notes
-All functions in this header require callback function pointers or return pointers to static structs. Low priority for JNI binding.
+FPDF_AddInstalledFont is only useful inside the EnumFonts callback of a
+FPDF_SYSFONTINFO struct, but is bound as a simple pass-through for completeness.
+FPDF_GetDefaultSystemFontInfo may return NULL on Android/Linux.

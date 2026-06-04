@@ -2,19 +2,28 @@
 
 ## Summary
 - Total functions: 6
-- Already bound: 1 (`FPDFAvail_IsLinearized`)
-- Missing: 5 (all require callback struct interfaces)
+- Already bound: 6 ✅
+- Missing: 0 ✅
 
-## Missing Kotlin Bindings (Complex — require FX_FILEAVAIL / FX_DOWNLOADHINTS callbacks)
+## All Functions Complete ✅
 
-- [ ] FPDFAvail_Create — needs FX_FILEAVAIL callback struct
-- [ ] FPDFAvail_Destroy
-- [ ] FPDFAvail_IsDocAvail — needs FX_DOWNLOADHINTS callback struct
-- [ ] FPDFAvail_GetDocument
-- [ ] FPDFAvail_GetFirstPageNum
-- [ ] FPDFAvail_IsPageAvail — needs FX_DOWNLOADHINTS callback struct
-- [ ] FPDFAvail_IsFormAvail — needs FX_DOWNLOADHINTS callback struct
+All 6 functions from fpdf_dataavail.h are now bound:
 
-## Already Bound (verified)
+### Recently Added
+- [x] FPDFAvail_Create — with FPDF_FILEACCESS buffer + FX_FILEAVAIL callbacks
+- [x] FPDFAvail_Destroy
+- [x] FPDFAvail_GetDocument
+- [x] FPDFAvail_GetFirstPageNum
+- [x] FPDFAvail_IsDocAvail (passes NULL for hints — basic check)
+- [x] FPDFAvail_IsPageAvail (passes NULL for hints — basic check)
+- [x] FPDFAvail_IsFormAvail (passes NULL for hints — basic check)
 
+### Already Bound (verified)
 - [x] FPDFAvail_IsLinearized
+
+## Notes
+- For FPDFAvail_Create, the file data is provided upfront as ByteArray.
+  FX_FILEAVAIL.IsDataAvail always returns true (all data available).
+  Download hints (FX_DOWNLOADHINTS) are not populated since all data is present.
+- For IsDocAvail, IsPageAvail, IsFormAvail: passing NULL for FX_DOWNLOADHINTS
+  still allows basic availability checking — hints just won't be populated.

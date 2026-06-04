@@ -2,20 +2,18 @@
 
 ## Summary
 - Total functions in header: 4
-- Already bound: 1 (stub returning -1)
-- Missing: 3
+- Already bound: 2
+- Remaining unbound: 2
 
-## Missing Kotlin Bindings
+## Recently Added
+- [x] FSDK_SetUnSpObjProcessHandler (with UNSUPPORT_INFO callback via JNI static method)
 
-- [ ] FSDK_SetUnSpObjProcessHandler (complex — callback struct)
-- [ ] FSDK_SetTimeFunction (complex — function pointer, testing only)
-- [ ] FSDK_SetLocaltimeFunction (complex — function pointer, testing only)
+## Remaining (Will Not Bind)
+- [ ] FSDK_SetTimeFunction — testing-only, raw fn pointer without context, unsafe from JNI
+- [ ] FSDK_SetLocaltimeFunction — testing-only, raw fn pointer without context, unsafe from JNI
 
 ## Already Bound (verified)
+- [x] FPDFDoc_GetPageMode (stub returning -1, function not in this PDFium build)
+- [x] FSDK_SetUnSpObjProcessHandler
 
-- [x] FPDFDoc_GetPageMode (stub returning -1)
-
-## Notes
-
-- FSDK_SetTimeFunction and FSDK_SetLocaltimeFunction are testing-only APIs that replace system time functions. They require function pointer callbacks which are complex to implement via JNI.
-- FSDK_SetUnSpObjProcessHandler requires a callback struct. Could be implemented with a Java callback interface.
+## Header Complete (2 test-only functions intentionally skipped)
