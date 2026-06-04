@@ -46,7 +46,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.HyntixHQ:KotlinPdfium:1.0.5")
+    implementation("com.github.HyntixHQ:KotlinPdfium:1.0.6")
 }
 ```
 
