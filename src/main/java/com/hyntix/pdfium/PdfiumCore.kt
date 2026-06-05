@@ -714,6 +714,7 @@ class PdfiumCore {
     private external fun nativeAnnotSetAttachmentPoints(annotPtr: Long, quadPoints: FloatArray): Boolean
     private external fun nativeAnnotAppendAttachmentPoints(annotPtr: Long, quadPoints: FloatArray): Boolean
     private external fun nativeAnnotCountAttachmentPoints(annotPtr: Long): Int
+    private external fun nativeAnnotGetAttachmentPoints(annotPtr: Long, quadIndex: Int, result: FloatArray): Boolean
     private external fun nativeAnnotGetObjectCount(annotPtr: Long): Int
     private external fun nativeAnnotGetObject(annotPtr: Long, index: Int): Long
     private external fun nativeAnnotAppendObject(annotPtr: Long, objPtr: Long): Boolean
@@ -814,6 +815,10 @@ class PdfiumCore {
     fun annotSetAttachmentPoints(annotPtr: Long, quadPoints: FloatArray) = nativeAnnotSetAttachmentPoints(annotPtr, quadPoints)
     fun annotAppendAttachmentPoints(annotPtr: Long, quadPoints: FloatArray) = nativeAnnotAppendAttachmentPoints(annotPtr, quadPoints)
     fun annotCountAttachmentPoints(annotPtr: Long) = nativeAnnotCountAttachmentPoints(annotPtr)
+    fun annotGetAttachmentPoints(annotPtr: Long, quadIndex: Int): FloatArray? {
+        val result = FloatArray(8)
+        return if (nativeAnnotGetAttachmentPoints(annotPtr, quadIndex, result)) result else null
+    }
     fun annotGetObjectCount(annotPtr: Long) = nativeAnnotGetObjectCount(annotPtr)
     fun annotGetObject(annotPtr: Long, index: Int) = nativeAnnotGetObject(annotPtr, index)
     fun annotAppendObject(annotPtr: Long, objPtr: Long) = nativeAnnotAppendObject(annotPtr, objPtr)

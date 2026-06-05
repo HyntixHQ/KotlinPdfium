@@ -4573,10 +4573,33 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotAppendAttachmentPoints(JNIEnv *env,
 
 JNIEXPORT jint JNICALL
 Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotCountAttachmentPoints(JNIEnv *env, jobject thiz,
-                                                                  jlong annotPtr) {
+                                                                   jlong annotPtr) {
     FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
     if (!annot) return 0;
     return FPDFAnnot_CountAttachmentPoints(annot);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetAttachmentPoints(JNIEnv *env, jobject thiz,
+                                                                  jlong annotPtr, jint quadIndex,
+                                                                  jfloatArray result) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return JNI_FALSE;
+
+    FS_QUADPOINTSF quadPoints;
+    if (!FPDFAnnot_GetAttachmentPoints(annot, quadIndex, &quadPoints)) return JNI_FALSE;
+
+    jfloat *body = env->GetFloatArrayElements(result, nullptr);
+    body[0] = quadPoints.x1;
+    body[1] = quadPoints.y1;
+    body[2] = quadPoints.x2;
+    body[3] = quadPoints.y2;
+    body[4] = quadPoints.x3;
+    body[5] = quadPoints.y3;
+    body[6] = quadPoints.x4;
+    body[7] = quadPoints.y4;
+    env->ReleaseFloatArrayElements(result, body, 0);
+    return JNI_TRUE;
 }
 
 JNIEXPORT jint JNICALL
