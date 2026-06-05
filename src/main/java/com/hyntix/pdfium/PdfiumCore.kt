@@ -707,6 +707,7 @@ class PdfiumCore {
     private external fun nativeAnnotGetVerticesCount(annotPtr: Long): Int
     private external fun nativeAnnotGetVertices(annotPtr: Long, vertices: FloatArray): Boolean
     private external fun nativeAnnotGetInkListCount(annotPtr: Long): Int
+    private external fun nativeAnnotGetInkListPathCount(annotPtr: Long, index: Int): Int
     private external fun nativeAnnotGetInkListPath(annotPtr: Long, index: Int, points: FloatArray): Boolean
     private external fun nativeAnnotRemoveInkList(annotPtr: Long): Boolean
     private external fun nativeAnnotAddInkStroke(annotPtr: Long, points: FloatArray): Boolean
@@ -808,6 +809,7 @@ class PdfiumCore {
     fun annotGetVerticesCount(annotPtr: Long) = nativeAnnotGetVerticesCount(annotPtr)
     fun annotGetVertices(annotPtr: Long, vertices: FloatArray) = nativeAnnotGetVertices(annotPtr, vertices)
     fun annotGetInkListCount(annotPtr: Long) = nativeAnnotGetInkListCount(annotPtr)
+    fun annotGetInkListPathCount(annotPtr: Long, index: Int) = nativeAnnotGetInkListPathCount(annotPtr, index)
     fun annotGetInkListPath(annotPtr: Long, index: Int, points: FloatArray) = nativeAnnotGetInkListPath(annotPtr, index, points)
     fun annotRemoveInkList(annotPtr: Long) = nativeAnnotRemoveInkList(annotPtr)
     fun annotAddInkStroke(annotPtr: Long, points: FloatArray) = nativeAnnotAddInkStroke(annotPtr, points)
@@ -837,12 +839,17 @@ class PdfiumCore {
 
     // Attachment Native methods
     private external fun nativeGetAttachmentCount(docPtr: Long): Int
+    private external fun nativeGetAttachmentObject(docPtr: Long, index: Int): Long
     private external fun nativeGetAttachmentName(docPtr: Long, index: Int): String?
     private external fun nativeGetAttachmentFile(docPtr: Long, index: Int): ByteArray?
 
     // Attachment Helpers
     fun getAttachmentCount(docPtr: Long): Int {
         return nativeGetAttachmentCount(docPtr)
+    }
+
+    fun getAttachmentObject(docPtr: Long, index: Int): Long {
+        return nativeGetAttachmentObject(docPtr, index)
     }
 
     fun getAttachmentName(docPtr: Long, index: Int): String {

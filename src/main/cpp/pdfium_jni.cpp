@@ -1498,6 +1498,17 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeGetAttachmentCount(JNIEnv *env, jobject 
 }
 
 /**
+ * Get Attachment Object (returns raw handle)
+ */
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetAttachmentObject(JNIEnv *env, jobject thiz,
+                                                             jlong docPtr, jint index) {
+    FPDF_DOCUMENT doc = (FPDF_DOCUMENT) docPtr;
+    if (!doc) return 0;
+    return (jlong) FPDFDoc_GetAttachment(doc, index);
+}
+
+/**
  * Get Attachment Name
  */
 JNIEXPORT jstring JNICALL
@@ -4473,6 +4484,14 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetInkListCount(JNIEnv *env, jobjec
     FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
     if (!annot) return 0;
     return FPDFAnnot_GetInkListCount(annot);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeAnnotGetInkListPathCount(JNIEnv *env, jobject thiz,
+                                                               jlong annotPtr, jint index) {
+    FPDF_ANNOTATION annot = (FPDF_ANNOTATION) annotPtr;
+    if (!annot) return 0;
+    return FPDFAnnot_GetInkListPath(annot, index, nullptr, 0);
 }
 
 JNIEXPORT jboolean JNICALL
