@@ -238,7 +238,6 @@ class PdfDocument internal constructor(
      */
     fun importPages(sourceDoc: PdfDocument, pageRange: String? = null, insertIndex: Int = pageCount): Boolean {
         checkNotClosed()
-        // We can access internal getPointer() because we are in the same module
         return core.importPages(docPtr, sourceDoc.getPointer(), pageRange, insertIndex)
     }
 

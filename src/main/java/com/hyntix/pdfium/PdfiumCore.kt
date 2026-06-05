@@ -1389,6 +1389,7 @@ class PdfiumCore {
     private external fun nativeLinkEnumerate(pagePtr: Long, startIndex: IntArray, linkPtr: LongArray): Boolean
     private external fun nativeLinkGetAnnot(pagePtr: Long, linkPtr: Long): Long
     private external fun nativeLinkCountQuadPoints(linkPtr: Long): Int
+    private external fun nativeLinkGetQuadPoints(linkPtr: Long, quadIndex: Int, result: FloatArray): Boolean
     private external fun nativeDestGetView(destPtr: Long, numParams: LongArray, params: FloatArray): Long
     private external fun nativeDestGetLocationInPage(destPtr: Long, hasXYZ: BooleanArray, location: FloatArray): Boolean
     private external fun nativeGetFileIdentifier(docPtr: Long, idType: Int): ByteArray?
@@ -1409,6 +1410,10 @@ class PdfiumCore {
 
     fun linkGetAnnot(pagePtr: Long, linkPtr: Long) = nativeLinkGetAnnot(pagePtr, linkPtr)
     fun linkCountQuadPoints(linkPtr: Long) = nativeLinkCountQuadPoints(linkPtr)
+    fun linkGetQuadPoints(linkPtr: Long, quadIndex: Int): FloatArray? {
+        val result = FloatArray(8)
+        return if (nativeLinkGetQuadPoints(linkPtr, quadIndex, result)) result else null
+    }
     fun destGetView(destPtr: Long): Triple<Long, Long, FloatArray> {
         val numParams = LongArray(1)
         val params = FloatArray(4)

@@ -2940,6 +2940,29 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeLinkCountQuadPoints(JNIEnv *env, jobject
     return FPDFLink_CountQuadPoints(link);
 }
 
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeLinkGetQuadPoints(JNIEnv *env, jobject thiz,
+                                                          jlong linkPtr, jint quadIndex,
+                                                          jfloatArray result) {
+    FPDF_LINK link = (FPDF_LINK) linkPtr;
+    if (!link) return JNI_FALSE;
+
+    FS_QUADPOINTSF quadPoints;
+    if (!FPDFLink_GetQuadPoints(link, quadIndex, &quadPoints)) return JNI_FALSE;
+
+    jfloat *body = env->GetFloatArrayElements(result, nullptr);
+    body[0] = quadPoints.x1;
+    body[1] = quadPoints.y1;
+    body[2] = quadPoints.x2;
+    body[3] = quadPoints.y2;
+    body[4] = quadPoints.x3;
+    body[5] = quadPoints.y3;
+    body[6] = quadPoints.x4;
+    body[7] = quadPoints.y4;
+    env->ReleaseFloatArrayElements(result, body, 0);
+    return JNI_TRUE;
+}
+
 JNIEXPORT jlong JNICALL
 Java_com_hyntix_pdfium_PdfiumCore_nativeDestGetView(JNIEnv *env, jobject thiz,
                                                      jlong destPtr, jlongArray numParams,
