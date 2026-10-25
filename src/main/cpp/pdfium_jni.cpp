@@ -145,11 +145,6 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeSetSandBoxPolicy(JNIEnv *env, jobject th
     FPDF_SetSandBoxPolicy((FPDF_DWORD) policy, enabled ? 1 : 0);
 }
 
-JNIEXPORT jboolean JNICALL
-Java_com_hyntix_pdfium_PdfiumCore_nativeSetPrintMode(JNIEnv *env, jobject thiz, jint mode) {
-    return JNI_FALSE;
-}
-
 JNIEXPORT jint JNICALL
 Java_com_hyntix_pdfium_PdfiumCore_nativeGetFileVersion(JNIEnv *env, jobject thiz,
                                                       jlong docPtr, jintArray version) {
@@ -5456,3 +5451,144 @@ Java_com_hyntix_pdfium_PdfiumCore_nativeStructElementGetRawType(JNIEnv *env, job
     return result;
 }
 
+
+// ===== fpdfview.h - Named Dests =====
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetNamedDest(JNIEnv *env, jobject thiz,
+                                                     jlong docPtr, jint index,
+                                                    jbyteArray buffer) {
+    FPDF_DOCUMENT document = (FPDF_DOCUMENT) docPtr;
+    if (!document) return 0;
+    
+    long buflen = buffer ? env->GetArrayLength(buffer) : 0;
+    if (buffer && buflen > 0) {
+        // Get the dest
+        FPDF_DEST dest = FPDF_GetNamedDest(document, index, nullptr, nullptr);
+        return (jlong) dest;
+    }
+    FPDF_DEST dest = FPDF_GetNamedDest(document, index, nullptr, nullptr);
+    return (jlong) dest;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetNamedDestByName(JNIEnv *env, jobject thiz,
+                                                            jlong docPtr, jbyteArray name) {
+    FPDF_DOCUMENT document = (FPDF_DOCUMENT) docPtr;
+    if (!document || !name) return 0;
+    jsize nameLen = env->GetArrayLength(name);
+    jbyte* nameData = env->GetByteArrayElements(name, nullptr);
+    FPDF_DEST dest = FPDF_GetNamedDestByName(document, (FPDF_BYTESTRING) nameData);
+    env->ReleaseByteArrayElements(name, nameData, JNI_ABORT);
+    return (jlong) dest;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetPageAAction(JNIEnv *env, jobject thiz,
+                                                        jlong pagePtr, jint aaType) {
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    if (!page) return 0;
+    return (jlong) FPDF_GetPageAAction(page, aaType);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetPageSizeByIndexF(JNIEnv *env, jobject thiz,
+                                                             jlong docPtr, jint pageIndex,
+                                                             jfloatArray sizes) {
+    FPDF_DOCUMENT document = (FPDF_DOCUMENT) docPtr;
+    if (!document || !sizes || env->GetArrayLength(sizes) < 2) return JNI_FALSE;
+    
+    FS_SIZEF size;
+    FPDF_BOOL result = FPDF_GetPageSizeByIndexF(document, pageIndex, &size);
+    if (!result) return JNI_FALSE;
+    
+    jfloat values[2] = { size.width, size.height };
+    env->SetFloatArrayRegion(sizes, 0, 2, values);
+    return JNI_TRUE;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetSecurityHandlerRevision(JNIEnv *env, jobject thiz,
+                                                                     jlong docPtr) {
+    FPDF_DOCUMENT document = (FPDF_DOCUMENT) docPtr;
+    if (!document) return 0;
+    return (jint) FPDF_GetSecurityHandlerRevision(document);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetTrailerEnds(JNIEnv *env, jobject thiz,
+                                                        jlong docPtr, jintArray buffer) {
+    FPDF_DOCUMENT document = (FPDF_DOCUMENT) docPtr;
+    if (!document) return 0;
+    
+    int count = FPDF_GetTrailerEnds(document, nullptr, 0);
+    if (buffer && env->GetArrayLength(buffer) >= count && count > 0) {
+        unsigned int* buf = new unsigned int[count];
+        count = FPDF_GetTrailerEnds(document, buf, count);
+        jint* out = new jint[count];
+        for (int i = 0; i < count; i++) out[i] = (jint) buf[i];
+        env->SetIntArrayRegion(buffer, 0, count, out);
+        delete[] buf;
+        delete[] out;
+    }
+    return count;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeMovePages(JNIEnv *env, jobject thiz,
+                                                   jlong docPtr, jintArray pageIndices,
+                                                   jint pageIndicesLen, jint destPageIndex) {
+    FPDF_DOCUMENT document = (FPDF_DOCUMENT) docPtr;
+    if (!document || !pageIndices) return JNI_FALSE;
+    
+    jsize len = env->GetArrayLength(pageIndices);
+    if (pageIndicesLen == 0) pageIndicesLen = len;
+    if (pageIndicesLen > len) return JNI_FALSE;
+    
+    jint* src = new jint[pageIndicesLen];
+    int* dst = new int[pageIndicesLen];
+    env->GetIntArrayRegion(pageIndices, 0, pageIndicesLen, src);
+    for (int i = 0; i < pageIndicesLen; i++) dst[i] = src[i];
+    
+    FPDF_BOOL result = FPDF_MovePages(document, dst, pageIndicesLen, destPageIndex);
+    delete[] src;
+    delete[] dst;
+    return result ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeRenderPageBitmapWithMatrix(JNIEnv *env, jobject thiz,
+                                                                    jlong bitmapPtr, jlong pagePtr,
+                                                                    jlong matrixPtr) {
+    FPDF_BITMAP bitmap = (FPDF_BITMAP) bitmapPtr;
+    FPDF_PAGE page = (FPDF_PAGE) pagePtr;
+    FS_MATRIX* matrix = (FS_MATRIX*) matrixPtr;
+    if (!bitmap || !page || !matrix) return 0;
+    
+    FS_RECTF clipping = { -float(INT_MAX), -float(INT_MAX), float(INT_MAX), float(INT_MAX) };
+    FPDF_RenderPageBitmapWithMatrix(bitmap, page, matrix, &clipping, 0);
+    return 0;
+}
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeGetDocUserPermissions(JNIEnv *env, jobject thiz,
+                                                               jlong docPtr) {
+    FPDF_DOCUMENT document = (FPDF_DOCUMENT) docPtr;
+    if (!document) return 0;
+    return (jint) FPDF_GetDocUserPermissions(document);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeCountNamedDests(JNIEnv *env, jobject thiz,
+                                                         jlong docPtr) {
+    FPDF_DOCUMENT document = (FPDF_DOCUMENT) docPtr;
+    if (!document) return 0;
+    return (jint) FPDF_CountNamedDests(document);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_hyntix_pdfium_PdfiumCore_nativeDocumentHasValidCrossReferenceTable(JNIEnv *env, jobject thiz,
+                                                                             jlong docPtr) {
+    FPDF_DOCUMENT document = (FPDF_DOCUMENT) docPtr;
+    if (!document) return JNI_FALSE;
+    return FPDF_DocumentHasValidCrossReferenceTable(document) ? JNI_TRUE : JNI_FALSE;
+}

@@ -131,7 +131,6 @@ class PdfiumCore {
     }
 
     fun setSandBoxPolicy(policy: Int, enabled: Boolean) = nativeSetSandBoxPolicy(policy, enabled)
-    fun setPrintMode(mode: Int): Boolean = nativeSetPrintMode(mode)
     fun getFileVersion(docPtr: Long): Int {
         val version = IntArray(1)
         if (nativeGetFileVersion(docPtr, version)) return version[0]
@@ -258,6 +257,26 @@ class PdfiumCore {
     fun catalogIsTagged(docPtr: Long): Boolean {
         return nativeCatalogIsTagged(docPtr)
     }
+
+    fun getNamedDest(docPtr: Long, index: Int): Long = nativeGetNamedDest(docPtr, index)
+    fun getNamedDestByName(docPtr: Long, name: ByteArray): Long = nativeGetNamedDestByName(docPtr, name)
+    fun countNamedDests(docPtr: Long): Int = nativeCountNamedDests(docPtr)
+    fun getPageAAction(pagePtr: Long, aaType: Int): Long = nativeGetPageAAction(pagePtr, aaType)
+    fun getPageSizeByIndexF(docPtr: Long, pageIndex: Int): FloatArray? {
+        val sizes = FloatArray(2)
+        return if (nativeGetPageSizeByIndexF(docPtr, pageIndex, sizes)) sizes else null
+    }
+    fun getSecurityHandlerRevision(docPtr: Long): Int = nativeGetSecurityHandlerRevision(docPtr)
+    fun getTrailerEnds(docPtr: Long): IntArray? {
+        val count = nativeGetTrailerEnds(docPtr, null!!)
+        if (count <= 0) return null
+        val buffer = IntArray(count)
+        nativeGetTrailerEnds(docPtr, buffer)
+        return buffer
+    }
+    fun movePages(docPtr: Long, pageIndices: IntArray, destPageIndex: Int): Boolean = nativeMovePages(docPtr, pageIndices, pageIndices.size, destPageIndex)
+    fun getDocUserPermissions(docPtr: Long): Int = nativeGetDocUserPermissions(docPtr)
+    fun documentHasValidCrossReferenceTable(docPtr: Long): Boolean = nativeDocumentHasValidCrossReferenceTable(docPtr)
 
     // Page operations
     fun loadPage(docPtr: Long, pageIndex: Int): Long {
@@ -482,7 +501,6 @@ class PdfiumCore {
     private external fun nativeInitLibrary()
     private external fun nativeDestroyLibrary()
     private external fun nativeSetSandBoxPolicy(policy: Int, enabled: Boolean)
-    private external fun nativeSetPrintMode(mode: Int): Boolean
     private external fun nativeGetFileVersion(docPtr: Long, version: IntArray): Boolean
     private external fun nativeGetPageWidthFFloat(pagePtr: Long): Int
     private external fun nativeGetPageHeightFFloat(pagePtr: Long): Int
@@ -511,6 +529,19 @@ class PdfiumCore {
     private external fun nativeGetCatalogLanguage(docPtr: Long): String?
     private external fun nativeSetCatalogLanguage(docPtr: Long, language: String): Boolean
     private external fun nativeCatalogIsTagged(docPtr: Long): Boolean
+    private external fun nativeGetNamedDest(docPtr: Long, index: Int): Long
+    private external fun nativeGetNamedDestByName(docPtr: Long, name: ByteArray): Long
+    private external fun nativeCountNamedDests(docPtr: Long): Int
+    private external fun nativeGetPageAAction(pagePtr: Long, aaType: Int): Long
+    private external fun nativeGetPageSizeByIndexF(docPtr: Long, pageIndex: Int, sizes: FloatArray): Boolean
+    private external fun nativeGetSecurityHandlerRevision(docPtr: Long): Int
+    private external fun nativeGetTrailerEnds(docPtr: Long, buffer: IntArray): Int
+    private external fun nativeMovePages(docPtr: Long, pageIndices: IntArray, pageIndicesLen: Int, destPageIndex: Int): Boolean
+    private external fun nativeRenderPageBitmapWithMatrix(bitmapPtr: Long, pagePtr: Long, matrixPtr: Long): Boolean
+    private external fun nativeGetDocUserPermissions(docPtr: Long): Int
+    private external fun nativeDocumentHasValidCrossReferenceTable(docPtr: Long): Boolean
+
+
     
     // Creation & Saving Native methods
     private external fun nativeNewDocument(): Long
