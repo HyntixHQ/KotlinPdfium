@@ -1,3 +1,16 @@
+## [1.0.8] - 2026-10-25
+
+### Changed
+- **Gradle 9.8.1** — upgraded from 9.4.1 (compatible with AGP 9.4.1+)
+- **AGP 9.4.1** — upgraded from 9.1.0
+- **AndroidX core-ktx 1.19.1** — upgraded from 1.18.0
+- **NDK 30.0.16248370** — upgraded from 30.0.14904198
+- **compileSdk 37** — upgraded from 36 (API 37 support)
+
+### Technical
+- 399 JNI bindings, 399 external funs, 397 public funs
+- AAR: 3.3 MB (debug)
+- arm64-v8a only, minSdk 26
 # Changelog
 
 All notable changes to this project will be documented in this file.

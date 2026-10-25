@@ -5,8 +5,8 @@ plugins {
 
 android {
     namespace = "com.hyntix.pdfium"
-    compileSdk = 36
-    ndkVersion = "30.0.14904198"
+    compileSdk = 37
+    ndkVersion = "30.0.16248370"
 
     defaultConfig {
         minSdk = 26
