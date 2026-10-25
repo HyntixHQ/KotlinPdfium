@@ -3,7 +3,7 @@
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 [![Android](https://img.shields.io/badge/Platform-Android-green.svg)](https://developer.android.com)
 [![API](https://img.shields.io/badge/API-26%2B-brightgreen.svg)](https://android-arsenal.com/api?level=26)
-[![PDFium](https://img.shields.io/badge/PDFium-150.0.7869.0-orange.svg)](https://pdfium.googlesource.com/pdfium/)
+[![PDFium](https://img.shields.io/badge/PDFium-158.0.8111.0-orange.svg)](https://pdfium.googlesource.com/pdfium/)
 
 A pure Kotlin/JNI wrapper for [PDFium](https://pdfium.googlesource.com/pdfium/) on Android (arm64-v8a). Provides a clean, idiomatic Kotlin API covering **396 JNI bindings across all 22 PDFium C API headers** for rendering, text extraction, annotations, form filling, editing, data availability, font mapping, and more.
 
@@ -46,7 +46,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.HyntixHQ:KotlinPdfium:1.0.7")
+    implementation("com.github.HyntixHQ:KotlinPdfium:1.0.8")
 }
 ```
 
@@ -195,7 +195,7 @@ doc.getTableOfContents().forEach { bookmark ->
 | **Architecture** | arm64-v8a |
 | **NDK** | 30.0.14904198 |
 | **JVM** | 21 |
-| **PDFium** | 150.0.7869.0 (chromium/7869) |
+| **PDFium** | 158.0.8111.0 (chromium/8111) |
 
 ## Architecture
 

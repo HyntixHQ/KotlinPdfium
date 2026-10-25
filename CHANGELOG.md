@@ -1,22 +1,33 @@
-## [1.0.8] - 2026-10-25
-
-### Changed
-- **Gradle 9.8.1** — upgraded from 9.4.1 (compatible with AGP 9.4.1+)
-- **AGP 9.4.1** — upgraded from 9.1.0
-- **AndroidX core-ktx 1.19.1** — upgraded from 1.18.0
-- **NDK 30.0.16248370** — upgraded from 30.0.14904198
-- **compileSdk 37** — upgraded from 36 (API 37 support)
-
-### Technical
-- 399 JNI bindings, 399 external funs, 397 public funs
-- AAR: 3.3 MB (debug)
-- arm64-v8a only, minSdk 26
 # Changelog
 
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.8] - 2026-10-25
+
+### Changed
+- **PDFium 158 Upgrade**: Updated PDFium engine from 150.0.7869.0 to **158.0.8111.0** (chromium/8111).
+- **Gradle 9.8.1** — upgraded from 9.4.1 (compatible with AGP 9.4.1+).
+- **AGP 9.4.1** — upgraded from 9.1.0.
+- **AndroidX core-ktx 1.19.1** — upgraded from 1.18.0.
+- **NDK 30.0.16248370** — upgraded from 30.0.14904198 (latest LTS).
+- **compileSdk 37** — upgraded from 36 (API 37 support).
+
+### Added
+- **Attachment APIs**: `attachmentSetDescription()`, `attachmentGetDescription()`, `attachmentGetAFRelationship()`
+- **Bookmark APIs**: `bookmarkGetColor()`, `bookmarkGetStyle()`
+- **Image Object Pattern APIs**: `imageObjGetRenderedStrokePattern()`, `imageObjGetRenderedFillPattern()`
+- **Path Bezier APIs**: `pathGetBezierControlPoints()`
+- **Form Text Direction**: `formGetTextDirection()`, `formSetTextDirection()` with constants `FPDF_TEXTDIR_UNKNOWN`, `FPDF_TEXTDIR_AUTO`, `FPDF_TEXTDIR_LTR`, `FPDF_TEXTDIR_RTL`
+- **Structure Element**: `structElementGetRawType()`
+
+### Technical
+- 410 JNI bindings, 410 external funs, 408 public funs
+- AAR: 3.3 MB (debug)
+- Binary: 6.6 MB (libpdfium.so)
+- arm64-v8a only, minSdk 26
 
 ## [1.0.7] - 2026-06-04
 
@@ -36,91 +47,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `FPDFAnnot_GetVertices`/`FPDFAnnot_GetInkListPath`: buffer type fixed to `FS_POINTF*`.
   - `FPDFPageObj_CreateNew`/`CreateNewRect`/`CreateTextObj`: corrected signatures (removed non-existent function, added rect coords, added font_size).
   - `FPDFPageObj_TransformF`: scalar args packed into `FS_MATRIX*` struct.
-  - `FPDFPageObj_SetLineCap`/`SetLineJoin`: removed deleted enum types (`FPDF_LINECAP`/`FPDF_LINEJOIN`).
-  - `FPDFPageObj_GetStrokeWidth`/`GetIsActive`/`GetFontSize`/`PathGetDrawMode`/`GetFontSize`: added missing out-params.
-  - `FPDFPageObj_AddMark`/`RemoveMark`: replaced undeclared `FPDF_MARKED_CONTENT_ID` with `FPDF_PAGEOBJECTMARK`.
-  - `FPDFPageObj_SetBlendMode`: replaced deleted `FPDF_BLENDMODE` cast with string mapping (16 blend mode names).
-  - `FPDFTextObj_GetText`: changed from 5 args `(doc, page, textObj, buf, len)` to 4 args `(textObj, textPage, buf, len)` using `FPDF_TEXTPAGE`.
-  - `FPDFImageObj_GetImagePixelSize`: `int*` → `unsigned int*`.
-  - `FPDFImageObj_SetBitmap`/`LoadJpegFile`/`LoadJpegFileInline`: updated to new API requiring `FPDF_PAGE*` array + count.
-  - `FPDFImageObj_GetIccProfileDataDecoded`: updated to new 5-arg signature with `size_t*` out-param.
-  - All corresponding Kotlin `private external fun` and public wrapper signatures updated.
 
-### Changed
-- **Complete API surface**: All 22 PDFium C API headers are now fully bound — 396 JNI functions, 396 Kotlin external declarations.
-- **Binary size**: `libpdfium.so` stable at 6.1 MB (no new native dependencies).
-- **`FPDFPageObj_SetBlendMode`**: Upgraded from stub to real implementation with blend mode string lookup table.
-- **`FPDFImageObj_SetBitmap`**: Upgraded from broken pixel cast to proper `FPDF_BITMAP` creation via `FPDFBitmap_CreateEx`.
-
-## [1.0.6] - 2026-06-04
-
-### Fixed
-- **JitPack build**: Added `jitpack.yml` to install NDK 30.0.14904198 and accept licenses on the build server.
-
-## [1.0.5] - 2026-06-04
-
-### Added
-- **PDFium 150 Upgrade**: Updated PDFium engine from 145.0.7616.0 to **150.0.7869.0** (chromium/7869).
-- **Catalog Language API**: New `getCatalogLanguage()` / `setCatalogLanguage()` for reading and writing document language metadata (`FPDFCatalog_GetLanguage` / `FPDFCatalog_SetLanguage`).
-- **Content Mark API**: `addExistingMark()` to attach marks to page objects (`FPDFPageObj_AddExistingMark`).
-- **Text Object Font Size**: `setTextObjFontSize()` for precise text object sizing (`FPDFTextObj_SetFontSize`).
-- **Text Positions**: `setTextPositions()` for character-level position adjustment (`FPDFText_SetPositions`).
-- **Structure Element Expansion**: `getStructElementExpansion()` for accessibility expansion text (`FPDF_StructElement_GetExpansion`).
-- **Save Flags**: Added `FPDF_REMOVE_SECURITY` (value 4, bitmask-safe), `FPDF_REMOVE_SECURITY_DEPRECATED` (value 3, legacy), and `FPDF_SUBSET_NEW_FONTS` (value 8) save flag constants.
-
-### Changed
-- **NDK 30**: Upgraded build toolchain from NDK 29.0.14206865 to **NDK 30.0.14904198** to match binary requirements.
-- **`FPDFPage_InsertObject` return type**: Now returns `Boolean` (was `Unit`) — wrapping the upstream change from `void` to `FPDF_BOOL`.
-- **`FPDF_LIBRARY_CONFIG`**: Updated to v5 struct with zero-initialization (`={}`).
-- **Binary size**: `libpdfium.so` increased from 4.8 MB to **6.1 MB** (standard build, no V8/XFA).
-
-### Technical
-- 159 JNI bindings (was ~150)
-- 158 external fun declarations, 104 public functions
-- AAR size: 3.2 MB (debug)
-
-## [1.0.4] - 2026-03-30
-
-### Changed
-- **Dependency Optimization**: Stripped all redundant Android app-specific dependencies from the library, significantly reducing transitive footprint.
-- **Pure Library Focus**: Refined project configuration to align with a pure JNI/Kotlin library architecture.
-
-## [1.0.3] - 2026-01-26
-
-### Changed
-- **License Change**: Relicensed from MIT to **GNU Affero General Public License v3.0 (AGPL-3.0)** for enhanced protection and community involvement.
-
-## [1.0.2] - 2026-01-24
-
-### Added
-- New web link detection API for matching and extracting URLs from text-based PDFs.
-
-## [1.0.1] - 2026-01-18
-
-### Changed
-- Improved build transparency with internal Gradle wrapper and `settings.gradle.kts`.
-- Standardized JitPack build configuration.
-- Cleaned up redundant type conversions in `PdfiumCore.kt`.
-
-## [1.0.0] - 2026-01-17
-
-### Added
-- Initial release
-- Core document operations (open, close, save, create)
-- Page rendering to Android Bitmap
-- Text extraction and search
-- Bookmark/Table of Contents support
-- Annotation reading
-- Link detection and navigation
-- Form filling support (read/write)
-- Digital signature information
-- Embedded file attachments
-- Structure tree for accessibility
-- Page import/export between documents
-- Coordinate mapping (device ↔ page)
-
-### Technical
-- Pure Kotlin API with JNI bindings
-- Pre-built PDFium v145.0.7616.0
-- arm64-v8a architecture support
-- Min SDK 26, Target SDK 36

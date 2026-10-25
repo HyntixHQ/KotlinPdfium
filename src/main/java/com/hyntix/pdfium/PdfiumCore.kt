@@ -31,6 +31,11 @@ class PdfiumCore {
 
         // Save flags from fpdf_save.h
         const val FPDF_INCREMENTAL = 1
+        // Text Direction constants from fpdf_formfill.h
+        const val FPDF_TEXTDIR_UNKNOWN = 0
+        const val FPDF_TEXTDIR_AUTO = 1
+        const val FPDF_TEXTDIR_LTR = 2
+        const val FPDF_TEXTDIR_RTL = 3
         const val FPDF_NO_INCREMENTAL = 2
         const val FPDF_REMOVE_SECURITY = 4
         const val FPDF_REMOVE_SECURITY_DEPRECATED = 3
@@ -834,6 +839,12 @@ class PdfiumCore {
     fun annotGetFormFieldFlags(formHandlePtr: Long, annotPtr: Long) = nativeAnnotGetFormFieldFlags(formHandlePtr, annotPtr)
     fun annotSetFormFieldFlags(formHandlePtr: Long, annotPtr: Long, flags: Int) = nativeAnnotSetFormFieldFlags(formHandlePtr, annotPtr, flags)
     fun annotGetFormAdditionalActionJavaScript(formHandlePtr: Long, annotPtr: Long, eventType: Int) = nativeAnnotGetFormAdditionalActionJavaScript(formHandlePtr, annotPtr, eventType) ?: ""
+    // Form Text Direction
+    private external fun nativeFormGetTextDirection(formHandlePtr: Long, annotPtr: Long): Int
+    private external fun nativeFormSetTextDirection(formHandlePtr: Long, annotPtr: Long, direction: Int): Boolean
+
+    fun formGetTextDirection(formHandlePtr: Long, annotPtr: Long): Int = nativeFormGetTextDirection(formHandlePtr, annotPtr)
+    fun formSetTextDirection(formHandlePtr: Long, annotPtr: Long, direction: Int): Boolean = nativeFormSetTextDirection(formHandlePtr, annotPtr, direction)
     fun annotIsSupportedSubtype(subtype: Int) = nativeAnnotIsSupportedSubtype(subtype)
     fun annotIsObjectSupportedSubtype(subtype: Int) = nativeAnnotIsObjectSupportedSubtype(subtype)
 
@@ -1119,6 +1130,21 @@ class PdfiumCore {
             )
         } else null
     }
+    // --- Image Object Pattern APIs ---
+    private external fun nativeImageObjGetRenderedStrokePattern(docPtr: Long, imageObjPtr: Long): Long
+    private external fun nativeImageObjGetRenderedFillPattern(docPtr: Long, imageObjPtr: Long): Long
+
+    fun imageObjGetRenderedStrokePattern(docPtr: Long, imageObjPtr: Long): Long = nativeImageObjGetRenderedStrokePattern(docPtr, imageObjPtr)
+    fun imageObjGetRenderedFillPattern(docPtr: Long, imageObjPtr: Long): Long = nativeImageObjGetRenderedFillPattern(docPtr, imageObjPtr)
+
+    // --- Path Bezier Control Points ---
+    private external fun nativePathGetBezierControlPoints(pathPtr: Long, index: Long, firstCtrl: FloatArray, secondCtrl: FloatArray): Boolean
+
+    fun pathGetBezierControlPoints(pathPtr: Long, index: Long): Pair<FloatArray, FloatArray>? {
+        val first = FloatArray(2)
+        val second = FloatArray(2)
+        return if (nativePathGetBezierControlPoints(pathPtr, index, first, second)) Pair(first, second) else null
+    }
 
     // fpdf_ext.h
     fun setUnSpObjProcessHandler(): Boolean = nativeSetUnSpObjProcessHandler()
@@ -1189,6 +1215,9 @@ class PdfiumCore {
     fun structElementGetType(structElemPtr: Long): String = nativeStructElementGetType(structElemPtr) ?: ""
     fun structElementGetAltText(structElemPtr: Long): String = nativeStructElementGetAltText(structElemPtr) ?: ""
     fun getStructElementExpansion(structElemPtr: Long): String = nativeGetStructElementExpansion(structElemPtr) ?: ""
+    private external fun nativeStructElementGetRawType(structElemPtr: Long): String?
+
+    fun structElementGetRawType(structElemPtr: Long): String = nativeStructElementGetRawType(structElemPtr) ?: ""
     fun structElementGetActualText(structElemPtr: Long): String = nativeStructElementGetActualText(structElemPtr) ?: ""
     fun structElementGetID(structElemPtr: Long): String = nativeStructElementGetID(structElemPtr) ?: ""
     fun structElementGetLang(structElemPtr: Long): String = nativeStructElementGetLang(structElemPtr) ?: ""
@@ -1397,6 +1426,8 @@ class PdfiumCore {
     private external fun nativeGetBookmarkAction(bookmarkPtr: Long): Long
     private external fun nativeGetLinkAction(linkPtr: Long): Long
     private external fun nativeBookmarkGetCount(bookmarkPtr: Long): Int
+    private external fun nativeBookmarkGetColor(bookmarkPtr: Long, rgb: FloatArray): Boolean
+    private external fun nativeBookmarkGetStyle(bookmarkPtr: Long): Int
     private external fun nativeLinkGetLinkZOrderAtPoint(pagePtr: Long, x: Double, y: Double): Int
     private external fun nativeLinkEnumerate(pagePtr: Long, startIndex: IntArray, linkPtr: LongArray): Boolean
     private external fun nativeLinkGetAnnot(pagePtr: Long, linkPtr: Long): Long
@@ -1411,6 +1442,11 @@ class PdfiumCore {
     fun getBookmarkAction(bookmarkPtr: Long) = nativeGetBookmarkAction(bookmarkPtr)
     fun getLinkAction(linkPtr: Long) = nativeGetLinkAction(linkPtr)
     fun bookmarkGetCount(bookmarkPtr: Long) = nativeBookmarkGetCount(bookmarkPtr)
+    fun bookmarkGetColor(bookmarkPtr: Long): FloatArray? {
+        val rgb = FloatArray(3)
+        return if (nativeBookmarkGetColor(bookmarkPtr, rgb)) rgb else null
+    }
+    fun bookmarkGetStyle(bookmarkPtr: Long): Int = nativeBookmarkGetStyle(bookmarkPtr)
     fun linkGetLinkZOrderAtPoint(pagePtr: Long, x: Double, y: Double) = nativeLinkGetLinkZOrderAtPoint(pagePtr, x, y)
     fun linkEnumerate(pagePtr: Long, startIndex: Int): Pair<Int, Long> {
         val startArr = IntArray(1)
@@ -1470,6 +1506,13 @@ class PdfiumCore {
     fun attachmentGetStringValue(attachmentPtr: Long, key: String): String = nativeAttachmentGetStringValue(attachmentPtr, key) ?: ""
     fun attachmentSetFile(attachmentPtr: Long, docPtr: Long, contents: ByteArray): Boolean = nativeAttachmentSetFile(attachmentPtr, docPtr, contents)
     fun attachmentGetSubtype(attachmentPtr: Long): String = nativeAttachmentGetSubtype(attachmentPtr) ?: ""
+    private external fun nativeAttachmentSetDescription(attachmentPtr: Long, value: String): Boolean
+    private external fun nativeAttachmentGetDescription(attachmentPtr: Long): String?
+    private external fun nativeAttachmentGetAFRelationship(attachmentPtr: Long): String?
+
+    fun attachmentSetDescription(attachmentPtr: Long, value: String): Boolean = nativeAttachmentSetDescription(attachmentPtr, value)
+    fun attachmentGetDescription(attachmentPtr: Long): String = nativeAttachmentGetDescription(attachmentPtr) ?: ""
+    fun attachmentGetAFRelationship(attachmentPtr: Long): String = nativeAttachmentGetAFRelationship(attachmentPtr) ?: ""
 
     // --- Page Object Colors (Get) ---
     private external fun nativeGetObjectStrokeColor(pageObjPtr: Long, result: IntArray): Boolean
